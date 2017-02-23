@@ -3,6 +3,13 @@ package main
 import "github.com/nsf/termbox-go"
 import "fmt"
 
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
+}
+
 func setCell(x, y int, r rune) {
     termbox.SetCell(x, y, r, termbox.ColorWhite, termbox.ColorBlack)
 }
@@ -58,13 +65,11 @@ type control interface {
 type focusable interface {
     control
     setFocus()
+    unsetFocus()
     handleEvent(termbox.Event)
 }
 
-type container struct {
-    controls []control
-    focused  focusable
-}
+// label ----------------------------------------------------------------------
 
 type label struct {
     bounds rect
@@ -75,18 +80,21 @@ func (l* label) render() {
     termPrint(l.bounds.left, l.bounds.top, l.text)
 }
 
+// textbox --------------------------------------------------------------------
+
 type textbox struct {
     bounds rect
     value  string
     cursor int
     scroll int
+    focus  bool
 }
 
-func min(a, b int) int {
-    if a < b {
-        return a
-    }
-    return b
+func renderableChar(k termbox.Key) bool {
+    return k != termbox.KeyEnter  &&
+           k != termbox.KeyPgup   &&
+           k != termbox.KeyPgdn   &&
+           k != termbox.KeyInsert
 }
 
 func (t* textbox) maxVisibleChars() int {
@@ -105,24 +113,19 @@ func (t* textbox) render() {
     renderBorder(t.bounds)
     termPrint(t.bounds.left + 1, t.bounds.top + 1,
               t.value[t.scroll:t.lastVisible() + 1])
-    termbox.SetCursor(t.bounds.left + 1 + t.cursor - t.scroll,
-                      t.bounds.top + 1)
 
-    termPrintf(1, 10, "value: %s", t.value)
-    termPrintf(1, 11, "cursor: %d", t.cursor)
-    termPrintf(1, 12, "scroll: %d", t.scroll)
-    termPrintf(1, 13, "maxVisibleChars(): %d", t.maxVisibleChars())
-    termPrintf(1, 14, "lastVisible(): %d", t.lastVisible())
+    if t.focus {
+        termbox.SetCursor(t.bounds.left + 1 + t.cursor - t.scroll,
+                          t.bounds.top + 1)
+    }
 }
 
 func (t* textbox) setFocus() {
+    t.focus = true
 }
 
-func renderableChar(k termbox.Key) bool {
-    return k != termbox.KeyEnter  &&
-           k != termbox.KeyPgup   &&
-           k != termbox.KeyPgdn   &&
-           k != termbox.KeyInsert
+func (t* textbox) unsetFocus() {
+    t.focus = false
 }
 
 func (t* textbox) handleEvent(ev termbox.Event) {
@@ -174,10 +177,102 @@ func (t* textbox) handleEvent(ev termbox.Event) {
     if t.cursor >= t.scroll + t.maxVisibleChars() {
         t.scroll = t.cursor - t.maxVisibleChars() + 1
     }
-    //lastVisible := t.lastVisible()
-    //if t.cursor > lastVisible {
-    //    t.scroll = t.cursor - lastVisible
-    //}
+}
+
+// checkbox -------------------------------------------------------------------
+
+type checkbox struct {
+    bounds  rect
+    text    string
+    checked bool
+    focus   bool
+}
+
+func (c* checkbox) render() {
+    checkContent := " "
+
+    if c.checked {
+        checkContent = "X"
+    }
+
+	s := fmt.Sprintf("[%s] %s", checkContent, c.text)
+
+    count := min(len(s), c.bounds.width)
+    termPrint(c.bounds.left, c.bounds.top, s[0:count])
+
+    if c.focus {
+        termbox.SetCursor(c.bounds.left + 1, c.bounds.top)
+    }
+}
+
+func (c* checkbox) setFocus() {
+    c.focus = true
+}
+
+func (c* checkbox) unsetFocus() {
+    c.focus = false
+}
+
+func (c* checkbox) handleEvent(ev termbox.Event) {
+    switch ev.Type {
+    case termbox.EventKey:
+        switch ev.Key {
+        case termbox.KeySpace:
+            c.checked = !c.checked
+        }
+    }
+}
+
+// container ------------------------------------------------------------------
+
+type container struct {
+    controls []control
+    focused  focusable
+}
+
+func (c* container) focus(f focusable) {
+    if c.focused != nil {
+        c.focused.unsetFocus()
+    }
+
+    c.focused = f
+    c.focused.setFocus()
+}
+
+func (c* container) controlIndex() {
+
+}
+
+func (c* container) focusNext() {
+    currentIndex := 0
+
+    // Find index of currently focused control
+    if c.focused != nil {
+        for index, ctrl := range c.controls {
+            if ctrl == c.focused {
+                currentIndex = index
+                break
+            }
+        }
+    }
+
+    // Scan list after focused control for another focusable control
+    for i := currentIndex + 1; i < len(c.controls); i++ {
+        f, ok := c.controls[i].(focusable)
+        if ok {
+            c.focus(f)
+            return
+        }
+    }
+
+    // Scan list before focused control (loop around)
+    for i := 0; i <= currentIndex; i++ {
+        f, ok := c.controls[i].(focusable)
+        if ok {
+            c.focus(f)
+            return
+        }
+    }
 }
 
 func refresh(c container) {
@@ -210,10 +305,23 @@ func main() {
         scroll: 0,
     }
 
-    c := container {
-        controls: []control {&l, &t},
-        focused: &t,
+    t2 := textbox {
+        bounds: rect { left: 5, top: 7, width: 15, height: 3},
+        value: "Greetings!",
+        cursor: 0,
+        scroll: 0,
     }
+
+    checkbox1 := checkbox {
+        bounds: rect { left: 5, top: 11, width: 30, height: 1},
+        text: "Enable the whateverthing",
+    }
+
+    c := container {
+        controls: []control {&l, &t, &t2, &checkbox1},
+    }
+
+    c.focusNext()
 
     termbox.SetInputMode(termbox.InputEsc) // | termbox.InputMouse)
     refresh(c)
@@ -229,11 +337,12 @@ func main() {
             case termbox.KeyCtrlC:
                 break loop
             case termbox.KeyTab:
+                c.focusNext()
                 handled = true
             }
         }
 
-        if !handled {
+        if !handled && c.focused != nil {
             c.focused.handleEvent(ev)
         }
 
