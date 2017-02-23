@@ -223,6 +223,48 @@ func (c* checkbox) handleEvent(ev termbox.Event) {
     }
 }
 
+// button ---------------------------------------------------------------------
+
+type ButtonClickEvent func(*button)
+
+type button struct {
+    bounds       rect
+    text         string
+    focus        bool
+    clickHandler ButtonClickEvent
+}
+
+func (b* button) render() {
+    renderBorder(b.bounds)
+
+    count := min(len(b.text), b.bounds.width - 4)
+    termPrint(b.bounds.left + 2, b.bounds.top + 1, b.text[0:count])
+
+    if b.focus {
+        termbox.SetCursor(b.bounds.left + 1, b.bounds.top + 1)
+    }
+}
+
+func (b* button) setFocus() {
+    b.focus = true
+}
+
+func (b* button) unsetFocus() {
+    b.focus = false
+}
+
+func (b* button) handleEvent(ev termbox.Event) {
+    switch ev.Type {
+    case termbox.EventKey:
+        switch ev.Key {
+        case termbox.KeyEnter, termbox.KeySpace:
+            if b.clickHandler != nil {
+                b.clickHandler(b)
+            }
+        }
+    }
+}
+
 // container ------------------------------------------------------------------
 
 type container struct {
@@ -286,6 +328,11 @@ func refresh(c container) {
     termbox.Sync()
 }
 
+
+func buttonClickHandler(b *button) {
+    panic("clicked!")
+}
+
 func main() {
     err := termbox.Init()
     if err != nil {
@@ -317,8 +364,14 @@ func main() {
         text: "Enable the whateverthing",
     }
 
+    button1 := button {
+        bounds: rect { left: 5, top: 15, width: 10, height: 3},
+        text: "Continue!",
+        clickHandler: buttonClickHandler,
+    }
+
     c := container {
-        controls: []control {&l, &t, &t2, &checkbox1},
+        controls: []control {&l, &t, &t2, &checkbox1, &button1},
     }
 
     c.focusNext()
