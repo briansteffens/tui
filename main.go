@@ -317,6 +317,38 @@ func (c* container) focusNext() {
     }
 }
 
+func (c* container) focusPrevious() {
+    currentIndex := 0
+
+    // Find index of currently focused control
+    if c.focused != nil {
+        for index, ctrl := range c.controls {
+            if ctrl == c.focused {
+                currentIndex = index
+                break
+            }
+        }
+    }
+
+    // Scan list before focused control for another focusable control
+    for i := currentIndex - 1; i >= 0; i-- {
+        f, ok := c.controls[i].(focusable)
+        if ok {
+            c.focus(f)
+            return
+        }
+    }
+
+    // Scan list after focused control (loop around)
+    for i := len(c.controls) - 1; i >= currentIndex; i-- {
+        f, ok := c.controls[i].(focusable)
+        if ok {
+            c.focus(f)
+            return
+        }
+    }
+}
+
 func refresh(c container) {
     termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
@@ -342,7 +374,7 @@ func main() {
 
     l := label {
         bounds: rect { left: 5, top: 1, width: 20, height: 1 },
-        text: "A textbox:",
+        text: "",
     }
 
     t := textbox {
@@ -381,18 +413,26 @@ func main() {
 
     loop: for {
         ev := termbox.PollEvent()
+        l.text = fmt.Sprintf("%s%d %d %d,", l.text, ev.Mod, ev.Key, ev.Ch)
 
         handled := false
 
         switch ev.Type {
         case termbox.EventKey:
             switch ev.Key {
+            case termbox.KeyCtrlA:
+                l.text = ""
             case termbox.KeyCtrlC:
                 break loop
             case termbox.KeyTab:
                 c.focusNext()
                 handled = true
             }
+        }
+
+        if ev.Ch == 90 {
+            c.focusPrevious()
+            handled = true
         }
 
         if !handled && c.focused != nil {
