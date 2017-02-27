@@ -2,6 +2,7 @@ package main
 
 import "github.com/nsf/termbox-go"
 import "fmt"
+import "time"
 
 func min(a, b int) int {
     if a < b {
@@ -14,16 +15,11 @@ func setCell(x, y int, r rune) {
     termbox.SetCell(x, y, r, termbox.ColorWhite, termbox.ColorBlack)
 }
 
-func termPrint(x, y int, msg string) {
-	for _, c := range msg {
-        setCell(x, y, c)
-		x++
-	}
-}
-
 func termPrintf(x, y int, format string, args ...interface{}) {
-	s := fmt.Sprintf(format, args...)
-	termPrint(x, y, s)
+    s := fmt.Sprintf(format, args...)
+    for i, c := range s {
+        setCell(x + i, y, c)
+    }
 }
 
 func renderBorder(r rect) {
@@ -66,7 +62,7 @@ type focusable interface {
     control
     setFocus()
     unsetFocus()
-    handleEvent(termbox.Event)
+    handleEvent(event)
 }
 
 // label ----------------------------------------------------------------------
@@ -77,7 +73,7 @@ type label struct {
 }
 
 func (l* label) render() {
-    termPrint(l.bounds.left, l.bounds.top, l.text)
+    termPrintf(l.bounds.left, l.bounds.top, l.text)
 }
 
 // textbox --------------------------------------------------------------------
@@ -111,8 +107,8 @@ func (t* textbox) lastVisible() int {
 
 func (t* textbox) render() {
     renderBorder(t.bounds)
-    termPrint(t.bounds.left + 1, t.bounds.top + 1,
-              t.value[t.scroll:t.lastVisible() + 1])
+    termPrintf(t.bounds.left + 1, t.bounds.top + 1,
+               t.value[t.scroll:t.lastVisible() + 1])
 
     if t.focus {
         termbox.SetCursor(t.bounds.left + 1 + t.cursor - t.scroll,
@@ -128,7 +124,7 @@ func (t* textbox) unsetFocus() {
     t.focus = false
 }
 
-func (t* textbox) handleEvent(ev termbox.Event) {
+func (t* textbox) handleEvent(ev event) {
     pre := t.value[0:t.cursor]
     post := t.value[t.cursor:len(t.value)]
 
@@ -198,7 +194,7 @@ func (c* checkbox) render() {
 	s := fmt.Sprintf("[%s] %s", checkContent, c.text)
 
     count := min(len(s), c.bounds.width)
-    termPrint(c.bounds.left, c.bounds.top, s[0:count])
+    termPrintf(c.bounds.left, c.bounds.top, s[0:count])
 
     if c.focus {
         termbox.SetCursor(c.bounds.left + 1, c.bounds.top)
@@ -213,7 +209,7 @@ func (c* checkbox) unsetFocus() {
     c.focus = false
 }
 
-func (c* checkbox) handleEvent(ev termbox.Event) {
+func (c* checkbox) handleEvent(ev event) {
     switch ev.Type {
     case termbox.EventKey:
         switch ev.Key {
@@ -238,7 +234,7 @@ func (b* button) render() {
     renderBorder(b.bounds)
 
     count := min(len(b.text), b.bounds.width - 4)
-    termPrint(b.bounds.left + 2, b.bounds.top + 1, b.text[0:count])
+    termPrintf(b.bounds.left + 2, b.bounds.top + 1, b.text[0:count])
 
     if b.focus {
         termbox.SetCursor(b.bounds.left + 1, b.bounds.top + 1)
@@ -253,7 +249,7 @@ func (b* button) unsetFocus() {
     b.focus = false
 }
 
-func (b* button) handleEvent(ev termbox.Event) {
+func (b* button) handleEvent(ev event) {
     switch ev.Type {
     case termbox.EventKey:
         switch ev.Key {
@@ -279,10 +275,6 @@ func (c* container) focus(f focusable) {
 
     c.focused = f
     c.focused.setFocus()
-}
-
-func (c* container) controlIndex() {
-
 }
 
 func (c* container) focusNext() {
@@ -360,6 +352,132 @@ func refresh(c container) {
     termbox.Sync()
 }
 
+// Non-standard escape sequences
+const (
+    SeqNone     = 0
+    SeqShiftTab = 1
+)
+
+type event struct {
+    termbox.Event
+    Seq int
+}
+
+// Convert termbox.Event to event
+func makeEvent(e termbox.Event) event {
+    var ret event
+
+    ret.Type   = e.Type
+    ret.Mod    = e.Mod
+    ret.Key    = e.Key
+    ret.Ch     = e.Ch
+    ret.Width  = e.Width
+    ret.Height = e.Height
+    ret.Err    = e.Err
+    ret.MouseX = e.MouseX
+    ret.MouseY = e.MouseY
+    ret.N      = e.N
+    ret.Seq    = SeqNone
+
+    return ret
+}
+
+// Check a list of termbox events to see if they match any known non-standard
+// escape sequences
+func detectSequence(events []event) event {
+    var ret event
+
+    if len(events) == 3 &&
+       events[0].Type == termbox.EventKey &&
+       events[0].Key == termbox.KeyEsc &&
+       events[1].Type == termbox.EventKey &&
+       events[1].Key == 0 &&
+       events[1].Ch == 91 &&
+       events[2].Type == termbox.EventKey &&
+       events[2].Key == 0 &&
+       events[2].Ch == 90 {
+        ret.Seq = SeqShiftTab
+    }
+
+    return ret
+}
+
+// Channel-ize termbox.PollEvent
+func pollTermboxEvents(c chan termbox.Event) {
+    for {
+        c <- termbox.PollEvent()
+    }
+}
+
+// Read termbox events and try to detect non-standard escape sequences
+func pollEvents(c chan event) {
+    termboxEvents := make(chan termbox.Event)
+    go pollTermboxEvents(termboxEvents)
+
+    escapeSequenceMaxDuration := time.Millisecond
+
+    // TODO: some kind of nil timer to start?
+    escapeSequenceTimer := time.NewTimer(escapeSequenceMaxDuration)
+    <-escapeSequenceTimer.C
+
+    inEscapeSequence := false
+
+    var sequenceBuffer [10]event
+    sequenceBufferLen := 0
+
+    for {
+        select {
+        case e := <-termboxEvents:
+            ev := makeEvent(e)
+
+            if ev.Type == termbox.EventKey && ev.Key == termbox.KeyEsc {
+                // If already in escape sequence and we see another escape key,
+                // flush the existing buffer and start a new escape sequence.
+                if inEscapeSequence {
+                    // Flush buffer
+                    for i := 0; i < sequenceBufferLen; i++ {
+                        c <- sequenceBuffer[i]
+                    }
+                }
+
+                escapeSequenceTimer.Reset(escapeSequenceMaxDuration)
+                inEscapeSequence = true
+                sequenceBufferLen = 0
+            }
+
+            if inEscapeSequence {
+                sequenceBuffer[sequenceBufferLen] = ev
+                sequenceBufferLen++
+
+                seq := detectSequence(sequenceBuffer[0:sequenceBufferLen])
+
+                if seq.Seq != SeqNone {
+                    // If an escape sequence was detected, return it and stop
+                    // the timer.
+                    c <- seq
+                    sequenceBufferLen = 0
+                    escapeSequenceTimer.Stop()
+                    inEscapeSequence = false
+                }
+
+                break
+            }
+
+            // Not in possible escape sequence: handle event immediately.
+            c <- ev
+
+        case <-escapeSequenceTimer.C:
+            // Escape sequence timeout reached. Assume no escape sequence is
+            // coming. Flush buffer.
+            inEscapeSequence = false
+
+            // Flush buffer
+            for i := 0; i < sequenceBufferLen; i++ {
+                c <- sequenceBuffer[i]
+            }
+        }
+    }
+}
 
 func buttonClickHandler(b *button) {
     panic("clicked!")
@@ -371,6 +489,8 @@ func main() {
         panic(err)
     }
     defer termbox.Close()
+
+    termbox.SetInputMode(termbox.InputEsc) // | termbox.InputMouse)
 
     l := label {
         bounds: rect { left: 5, top: 1, width: 20, height: 1 },
@@ -407,30 +527,31 @@ func main() {
     }
 
     c.focusNext()
-
-    termbox.SetInputMode(termbox.InputEsc) // | termbox.InputMouse)
     refresh(c)
 
+    events := make(chan event)
+    go pollEvents(events)
+
     loop: for {
-        ev := termbox.PollEvent()
-        l.text = fmt.Sprintf("%s%d %d %d,", l.text, ev.Mod, ev.Key, ev.Ch)
+        ev := <-events
 
         handled := false
 
-        switch ev.Type {
-        case termbox.EventKey:
-            switch ev.Key {
-            case termbox.KeyCtrlA:
-                l.text = ""
-            case termbox.KeyCtrlC:
-                break loop
-            case termbox.KeyTab:
-                c.focusNext()
-                handled = true
+        switch ev.Seq {
+        case SeqNone:
+            switch ev.Type {
+            case termbox.EventKey:
+                switch ev.Key {
+                case termbox.KeyCtrlA:
+                    l.text = ""
+                case termbox.KeyCtrlC:
+                    break loop
+                case termbox.KeyTab:
+                    c.focusNext()
+                    handled = true
+                }
             }
-        }
-
-        if ev.Ch == 90 {
+        case SeqShiftTab:
             c.focusPrevious()
             handled = true
         }
