@@ -1,8 +1,10 @@
 package main
 
-import "github.com/nsf/termbox-go"
-import "fmt"
-import "time"
+import (
+    "fmt"
+    "github.com/nsf/termbox-go"
+    "github.com/briansteffens/escapebox"
+)
 
 func min(a, b int) int {
     if a < b {
@@ -62,7 +64,7 @@ type focusable interface {
     control
     setFocus()
     unsetFocus()
-    handleEvent(event)
+    handleEvent(escapebox.Event)
 }
 
 // label ----------------------------------------------------------------------
@@ -124,7 +126,7 @@ func (t* textbox) unsetFocus() {
     t.focus = false
 }
 
-func (t* textbox) handleEvent(ev event) {
+func (t* textbox) handleEvent(ev escapebox.Event) {
     pre := t.value[0:t.cursor]
     post := t.value[t.cursor:len(t.value)]
 
@@ -209,7 +211,7 @@ func (c* checkbox) unsetFocus() {
     c.focus = false
 }
 
-func (c* checkbox) handleEvent(ev event) {
+func (c* checkbox) handleEvent(ev escapebox.Event) {
     switch ev.Type {
     case termbox.EventKey:
         switch ev.Key {
@@ -249,7 +251,7 @@ func (b* button) unsetFocus() {
     b.focus = false
 }
 
-func (b* button) handleEvent(ev event) {
+func (b* button) handleEvent(ev escapebox.Event) {
     switch ev.Type {
     case termbox.EventKey:
         switch ev.Key {
@@ -260,6 +262,38 @@ func (b* button) handleEvent(ev event) {
         }
     }
 }
+
+// editor ---------------------------------------------------------------------
+
+type editbox struct {
+    bounds rect
+    value  string
+    cursor int
+    scroll int
+    focus  bool
+}
+
+func (e* editbox) render() {
+    renderBorder(e.bounds)
+    termPrintf(e.bounds.left + 1, e.bounds.top + 1, e.value)
+
+    if e.focus {
+        termbox.SetCursor(e.bounds.left + 1 + e.cursor - e.scroll,
+                          e.bounds.top + 1)
+    }
+}
+
+func (e* editbox) setFocus() {
+    e.focus = true
+}
+
+func (e* editbox) unsetFocus() {
+    e.focus = false
+}
+
+func (e* editbox) handleEvent(ev escapebox.Event) {
+}
+
 
 // container ------------------------------------------------------------------
 
@@ -354,130 +388,8 @@ func refresh(c container) {
 
 // Non-standard escape sequences
 const (
-    SeqNone     = 0
     SeqShiftTab = 1
 )
-
-type event struct {
-    termbox.Event
-    Seq int
-}
-
-// Convert termbox.Event to event
-func makeEvent(e termbox.Event) event {
-    var ret event
-
-    ret.Type   = e.Type
-    ret.Mod    = e.Mod
-    ret.Key    = e.Key
-    ret.Ch     = e.Ch
-    ret.Width  = e.Width
-    ret.Height = e.Height
-    ret.Err    = e.Err
-    ret.MouseX = e.MouseX
-    ret.MouseY = e.MouseY
-    ret.N      = e.N
-    ret.Seq    = SeqNone
-
-    return ret
-}
-
-// Check a list of termbox events to see if they match any known non-standard
-// escape sequences
-func detectSequence(events []event) event {
-    var ret event
-
-    if len(events) == 3 &&
-       events[0].Type == termbox.EventKey &&
-       events[0].Key == termbox.KeyEsc &&
-       events[1].Type == termbox.EventKey &&
-       events[1].Key == 0 &&
-       events[1].Ch == 91 &&
-       events[2].Type == termbox.EventKey &&
-       events[2].Key == 0 &&
-       events[2].Ch == 90 {
-        ret.Seq = SeqShiftTab
-    }
-
-    return ret
-}
-
-// Channel-ize termbox.PollEvent
-func pollTermboxEvents(c chan termbox.Event) {
-    for {
-        c <- termbox.PollEvent()
-    }
-}
-
-// Read termbox events and try to detect non-standard escape sequences
-func pollEvents(c chan event) {
-    termboxEvents := make(chan termbox.Event)
-    go pollTermboxEvents(termboxEvents)
-
-    escapeSequenceMaxDuration := time.Millisecond
-
-    // TODO: some kind of nil timer to start?
-    escapeSequenceTimer := time.NewTimer(escapeSequenceMaxDuration)
-    <-escapeSequenceTimer.C
-
-    inEscapeSequence := false
-
-    var sequenceBuffer [10]event
-    sequenceBufferLen := 0
-
-    for {
-        select {
-        case e := <-termboxEvents:
-            ev := makeEvent(e)
-
-            if ev.Type == termbox.EventKey && ev.Key == termbox.KeyEsc {
-                // If already in escape sequence and we see another escape key,
-                // flush the existing buffer and start a new escape sequence.
-                if inEscapeSequence {
-                    // Flush buffer
-                    for i := 0; i < sequenceBufferLen; i++ {
-                        c <- sequenceBuffer[i]
-                    }
-                }
-
-                escapeSequenceTimer.Reset(escapeSequenceMaxDuration)
-                inEscapeSequence = true
-                sequenceBufferLen = 0
-            }
-
-            if inEscapeSequence {
-                sequenceBuffer[sequenceBufferLen] = ev
-                sequenceBufferLen++
-
-                seq := detectSequence(sequenceBuffer[0:sequenceBufferLen])
-
-                if seq.Seq != SeqNone {
-                    // If an escape sequence was detected, return it and stop
-                    // the timer.
-                    c <- seq
-                    sequenceBufferLen = 0
-                    escapeSequenceTimer.Stop()
-                    inEscapeSequence = false
-                }
-
-                break
-            }
-
-            // Not in possible escape sequence: handle event immediately.
-            c <- ev
-
-        case <-escapeSequenceTimer.C:
-            // Escape sequence timeout reached. Assume no escape sequence is
-            // coming. Flush buffer.
-            inEscapeSequence = false
-
-            // Flush buffer
-            for i := 0; i < sequenceBufferLen; i++ {
-                c <- sequenceBuffer[i]
-            }
-        }
-    }
-}
 
 func buttonClickHandler(b *button) {
     panic("clicked!")
@@ -492,53 +404,62 @@ func main() {
 
     termbox.SetInputMode(termbox.InputEsc) // | termbox.InputMouse)
 
+    escapebox.Init()
+    defer escapebox.Close()
+
+    escapebox.Register(SeqShiftTab, 91, 90)
+
+    edit1 := editbox {
+        bounds: rect { left: 2, top: 6, width: 30, height: 10 },
+        value: "Hello!",
+        cursor: 0,
+        scroll: 0,
+    }
+
     l := label {
-        bounds: rect { left: 5, top: 1, width: 20, height: 1 },
-        text: "",
+        bounds: rect { left: 2, top: 1, width: 20, height: 1 },
+        text: "Greetings:",
     }
 
     t := textbox {
-        bounds: rect { left: 5, top: 2, width: 5, height: 3 },
+        bounds: rect { left: 2, top: 2, width: 5, height: 3 },
         value: "12",
         cursor: 2,
         scroll: 0,
     }
 
     t2 := textbox {
-        bounds: rect { left: 5, top: 7, width: 15, height: 3},
+        bounds: rect { left: 10, top: 2, width: 15, height: 3},
         value: "Greetings!",
         cursor: 0,
         scroll: 0,
     }
 
     checkbox1 := checkbox {
-        bounds: rect { left: 5, top: 11, width: 30, height: 1},
+        bounds: rect { left: 27, top: 1, width: 30, height: 1},
         text: "Enable the whateverthing",
     }
 
     button1 := button {
-        bounds: rect { left: 5, top: 15, width: 10, height: 3},
+        bounds: rect { left: 27, top: 2, width: 10, height: 3},
         text: "Continue!",
         clickHandler: buttonClickHandler,
     }
 
     c := container {
-        controls: []control {&l, &t, &t2, &checkbox1, &button1},
+        controls: []control {&t, &edit1, &l, &t2, &checkbox1, &button1},
     }
 
     c.focusNext()
     refresh(c)
 
-    events := make(chan event)
-    go pollEvents(events)
-
     loop: for {
-        ev := <-events
+        ev := escapebox.PollEvent()
 
         handled := false
 
         switch ev.Seq {
-        case SeqNone:
+        case escapebox.SeqNone:
             switch ev.Type {
             case termbox.EventKey:
                 switch ev.Key {
