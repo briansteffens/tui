@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+go run \
+    shared.go \
+    container.go \
+    label.go \
+    textbox.go \
+    checkbox.go \
+    button.go \
+    editbox.go \
+    main.go

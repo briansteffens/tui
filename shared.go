@@ -1,0 +1,68 @@
+package main
+
+import (
+	"fmt"
+	"github.com/nsf/termbox-go"
+	"github.com/briansteffens/escapebox"
+)
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func setCell(x, y int, r rune) {
+	termbox.SetCell(x, y, r, termbox.ColorWhite, termbox.ColorBlack)
+}
+
+func termPrintf(x, y int, format string, args ...interface{}) {
+	s := fmt.Sprintf(format, args...)
+	for i, c := range s {
+		setCell(x + i, y, c)
+	}
+}
+
+func RenderBorder(r Rect) {
+	// Corners
+	setCell(r.Left, r.Top, '+')
+	setCell(r.Right(), r.Top, '+')
+	setCell(r.Left, r.Bottom(), '+')
+	setCell(r.Right(), r.Bottom(), '+')
+
+	// Horizontal borders
+	for x := r.Left + 1; x < r.Right(); x++ {
+		setCell(x, r.Top, '-')
+		setCell(x, r.Bottom(), '-')
+	}
+
+	// Vertical borders
+	for y := r.Top + 1; y < r.Bottom(); y++ {
+		setCell(r.Left, y, '|')
+		setCell(r.Right(), y, '|')
+	}
+}
+
+type Rect struct {
+	Left, Top, Width, Height int
+}
+
+func (r* Rect) Right() int {
+	return r.Left + r.Width - 1
+}
+
+func (r* Rect) Bottom() int {
+	return r.Top + r.Height - 1
+}
+
+type Control interface {
+	Render()
+}
+
+type Focusable interface {
+	Control
+	SetFocus()
+	UnsetFocus()
+	HandleEvent(escapebox.Event)
+}
