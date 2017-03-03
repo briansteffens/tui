@@ -13,7 +13,7 @@ type Editbox struct {
 	focus  bool
 }
 
-func (e* Editbox) Render() {
+func (e *Editbox) Render() {
 	RenderBorder(e.Bounds)
 	termPrintf(e.Bounds.Left + 1, e.Bounds.Top + 1, e.Value)
 
@@ -23,13 +23,13 @@ func (e* Editbox) Render() {
 	}
 }
 
-func (e* Editbox) SetFocus() {
+func (e *Editbox) SetFocus() {
 	e.focus = true
 }
 
-func (e* Editbox) UnsetFocus() {
+func (e *Editbox) UnsetFocus() {
 	e.focus = false
 }
 
-func (e* Editbox) HandleEvent(ev escapebox.Event) {
+func (e *Editbox) HandleEvent(ev escapebox.Event) {
 }

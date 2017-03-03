@@ -5,6 +5,6 @@ type Label struct {
 	Text   string
 }
 
-func (l* Label) Render() {
+func (l *Label) Render() {
 	termPrintf(l.Bounds.Left, l.Bounds.Top, l.Text)
 }

@@ -48,11 +48,11 @@ type Rect struct {
 	Left, Top, Width, Height int
 }
 
-func (r* Rect) Right() int {
+func (r *Rect) Right() int {
 	return r.Left + r.Width - 1
 }
 
-func (r* Rect) Bottom() int {
+func (r *Rect) Bottom() int {
 	return r.Top + r.Height - 1
 }
 

@@ -9,7 +9,7 @@ type Container struct {
 	Focused  Focusable
 }
 
-func (c* Container) focus(f Focusable) {
+func (c *Container) focus(f Focusable) {
 	if c.Focused != nil {
 		c.Focused.UnsetFocus()
 	}
@@ -18,7 +18,7 @@ func (c* Container) focus(f Focusable) {
 	c.Focused.SetFocus()
 }
 
-func (c* Container) FocusNext() {
+func (c *Container) FocusNext() {
 	currentIndex := 0
 
 	// Find index of currently focused control
@@ -50,7 +50,7 @@ func (c* Container) FocusNext() {
 	}
 }
 
-func (c* Container) FocusPrevious() {
+func (c *Container) FocusPrevious() {
 	currentIndex := 0
 
 	// Find index of currently focused control

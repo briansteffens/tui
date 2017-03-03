@@ -21,19 +21,19 @@ func renderableChar(k termbox.Key) bool {
 	       k != termbox.KeyInsert
 }
 
-func (t* Textbox) maxVisibleChars() int {
+func (t *Textbox) maxVisibleChars() int {
 	return t.Bounds.Width - 2
 }
 
-func (t* Textbox) visibleChars() int {
+func (t *Textbox) visibleChars() int {
 	return min(t.maxVisibleChars(), len(t.Value) - t.scroll)
 }
 
-func (t* Textbox) lastVisible() int {
+func (t *Textbox) lastVisible() int {
 	return t.scroll + t.visibleChars() - 1
 }
 
-func (t* Textbox) Render() {
+func (t *Textbox) Render() {
 	RenderBorder(t.Bounds)
 	termPrintf(t.Bounds.Left + 1, t.Bounds.Top + 1,
 		   t.Value[t.scroll:t.lastVisible() + 1])
@@ -44,15 +44,15 @@ func (t* Textbox) Render() {
 	}
 }
 
-func (t* Textbox) SetFocus() {
+func (t *Textbox) SetFocus() {
 	t.focus = true
 }
 
-func (t* Textbox) UnsetFocus() {
+func (t *Textbox) UnsetFocus() {
 	t.focus = false
 }
 
-func (t* Textbox) HandleEvent(ev escapebox.Event) {
+func (t *Textbox) HandleEvent(ev escapebox.Event) {
 	pre := t.Value[0:t.cursor]
 	post := t.Value[t.cursor:len(t.Value)]
 

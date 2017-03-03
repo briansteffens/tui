@@ -13,7 +13,7 @@ type Checkbox struct {
 	focus   bool
 }
 
-func (c* Checkbox) Render() {
+func (c *Checkbox) Render() {
 	checkContent := " "
 
 	if c.Checked {
@@ -30,15 +30,15 @@ func (c* Checkbox) Render() {
 	}
 }
 
-func (c* Checkbox) SetFocus() {
+func (c *Checkbox) SetFocus() {
 	c.focus = true
 }
 
-func (c* Checkbox) UnsetFocus() {
+func (c *Checkbox) UnsetFocus() {
 	c.focus = false
 }
 
-func (c* Checkbox) HandleEvent(ev escapebox.Event) {
+func (c *Checkbox) HandleEvent(ev escapebox.Event) {
 	switch ev.Type {
 	case termbox.EventKey:
 		switch ev.Key {

@@ -14,7 +14,7 @@ type button struct {
 	ClickHandler ButtonClickEvent
 }
 
-func (b* button) Render() {
+func (b *button) Render() {
 	RenderBorder(b.Bounds)
 
 	count := min(len(b.Text), b.Bounds.Width - 4)
@@ -25,15 +25,15 @@ func (b* button) Render() {
 	}
 }
 
-func (b* button) SetFocus() {
+func (b *button) SetFocus() {
 	b.focus = true
 }
 
-func (b* button) UnsetFocus() {
+func (b *button) UnsetFocus() {
 	b.focus = false
 }
 
-func (b* button) HandleEvent(ev escapebox.Event) {
+func (b *button) HandleEvent(ev escapebox.Event) {
 	switch ev.Type {
 	case termbox.EventKey:
 		switch ev.Key {
