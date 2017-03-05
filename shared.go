@@ -13,6 +13,13 @@ func min(a, b int) int {
 	return b
 }
 
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func setCell(x, y int, r rune) {
 	termbox.SetCell(x, y, r, termbox.ColorWhite, termbox.ColorBlack)
 }

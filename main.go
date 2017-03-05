@@ -30,9 +30,18 @@ func main() {
 
 	edit1 := Editbox {
 		Bounds: Rect { Left: 2, Top: 6, Width: 30, Height: 10 },
-		Value: "Hello!",
-		cursor: 0,
+		lines: []string {
+			"Hello! This is a file which has a line!",
+			"And here is another line woah",
+			"And yet another",
+			"Guess what",
+			"They keep going!",
+			"Again! Another wrapping line gogogo",
+			"Ok one more",
+		},
 		scroll: 0,
+		cursorLine: 6,
+		cursorChar: 5,
 	}
 
 	l := Label {
