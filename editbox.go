@@ -118,6 +118,9 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 			e.cursorChar = 0
 		case 'i':
 			e.mode = InsertMode
+		case 'A':
+			e.cursorChar = len(line)
+			e.mode = InsertMode
 		}
 	} else if e.mode == InsertMode {
 		if ev.Key == termbox.KeyEsc {
