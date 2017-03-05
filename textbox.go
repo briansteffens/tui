@@ -14,13 +14,6 @@ type Textbox struct {
 	focus  bool
 }
 
-func renderableChar(k termbox.Key) bool {
-	return k != termbox.KeyEnter  &&
-	       k != termbox.KeyPgup   &&
-	       k != termbox.KeyPgdn   &&
-	       k != termbox.KeyInsert
-}
-
 func (t *Textbox) maxVisibleChars() int {
 	return t.Bounds.Width - 2
 }

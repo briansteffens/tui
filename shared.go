@@ -20,6 +20,17 @@ func max(a, b int) int {
 	return b
 }
 
+func renderableChar(k termbox.Key) bool {
+	return k != termbox.KeyEnter      &&
+	       k != termbox.KeyPgup       &&
+	       k != termbox.KeyPgdn       &&
+	       k != termbox.KeyInsert     &&
+	       k != termbox.KeyArrowUp    &&
+	       k != termbox.KeyArrowDown  &&
+	       k != termbox.KeyArrowLeft  &&
+	       k != termbox.KeyArrowRight
+}
+
 func setCell(x, y int, r rune) {
 	termbox.SetCell(x, y, r, termbox.ColorWhite, termbox.ColorBlack)
 }

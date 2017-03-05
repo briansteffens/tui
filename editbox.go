@@ -5,6 +5,11 @@ import (
 	"github.com/briansteffens/escapebox"
 )
 
+const (
+	CommandMode = 0
+	InsertMode  = 1
+)
+
 type Editbox struct {
 	Bounds     Rect
 	lines      []string
@@ -12,6 +17,7 @@ type Editbox struct {
 	cursorChar int
 	scroll     int
 	focus      bool
+	mode       int
 }
 
 func splitRows(line string, textWidth int) []string {
@@ -29,7 +35,7 @@ func splitRows(line string, textWidth int) []string {
 
 func (e *Editbox) Render() {
 	textWidth := e.Bounds.Width - 2
-	textHeight := e.Bounds.Height - 2
+	textHeight := e.Bounds.Height - 3
 
 	// Generate virtual lines and map the cursor to them.
 	virtualLines := make([]string, 0)
@@ -74,6 +80,11 @@ func (e *Editbox) Render() {
 		termbox.SetCursor(e.Bounds.Left + 1 + cursorCol,
 				  e.Bounds.Top  + 1 + cursorRow - e.scroll)
 	}
+
+	if e.mode == InsertMode {
+		termPrintf(e.Bounds.Left + 1, e.Bounds.Bottom() - 1,
+			   "-- INSERT --")
+	}
 }
 
 func (e *Editbox) SetFocus() {
@@ -89,19 +100,54 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 		return
 	}
 
-	switch ev.Ch {
-	case 'h', 'H':
-		e.cursorChar = max(0, e.cursorChar - 1)
-	case 'l', 'L':
-		e.cursorChar++
-	case 'k', 'K':
-		e.cursorLine = max(0, e.cursorLine - 1)
-
-	case 'j', 'J':
-		e.cursorLine = min(len(e.lines) - 1, e.cursorLine + 1)
-	case '0':
-		e.cursorChar = 0
+	if e.mode == CommandMode {
+		switch ev.Ch {
+		case 'h':
+			e.cursorChar--
+		case 'l':
+			e.cursorChar++
+		case 'k':
+			e.cursorLine--
+		case 'j':
+			e.cursorLine++
+		case '0':
+			e.cursorChar = 0
+		case 'i':
+			e.mode = InsertMode
+		}
+	} else if e.mode == InsertMode {
+		if ev.Key == termbox.KeyEsc {
+			e.mode = CommandMode
+			e.cursorChar--
+		} else if renderableChar(ev.Key) {
+			line := e.lines[e.cursorLine]
+			e.lines[e.cursorLine] =
+				line[0:e.cursorChar] +
+				string(ev.Ch) +
+				line[e.cursorChar:len(line)]
+			e.cursorChar++
+		} else {
+			switch (ev.Key) {
+			case termbox.KeyArrowLeft:
+				e.cursorChar--
+			case termbox.KeyArrowRight:
+				e.cursorChar++
+			case termbox.KeyArrowUp:
+				e.cursorLine--
+			case termbox.KeyArrowDown:
+				e.cursorLine++
+			}
+		}
 	}
 
-	e.cursorChar = min(len(e.lines[e.cursorLine]) - 1, e.cursorChar)
+	e.cursorLine = max(0, e.cursorLine)
+	e.cursorLine = min(len(e.lines) - 1, e.cursorLine)
+
+	e.cursorChar = max(0, e.cursorChar)
+	if e.mode == InsertMode {
+		e.cursorChar = min(len(e.lines[e.cursorLine]), e.cursorChar)
+	} else {
+		e.cursorChar = min(len(e.lines[e.cursorLine]) - 1,
+				   e.cursorChar)
+	}
 }
