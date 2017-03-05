@@ -28,7 +28,9 @@ func renderableChar(k termbox.Key) bool {
 	       k != termbox.KeyArrowUp    &&
 	       k != termbox.KeyArrowDown  &&
 	       k != termbox.KeyArrowLeft  &&
-	       k != termbox.KeyArrowRight
+	       k != termbox.KeyArrowRight &&
+	       k != termbox.KeyBackspace  &&
+	       k != termbox.KeyBackspace2
 }
 
 func setCell(x, y int, r rune) {

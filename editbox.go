@@ -100,6 +100,10 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 		return
 	}
 
+	line := e.lines[e.cursorLine]
+	pre  := line[0:e.cursorChar]
+	post := line[e.cursorChar:len(line)]
+
 	if e.mode == CommandMode {
 		switch ev.Ch {
 		case 'h':
@@ -120,11 +124,7 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 			e.mode = CommandMode
 			e.cursorChar--
 		} else if renderableChar(ev.Key) {
-			line := e.lines[e.cursorLine]
-			e.lines[e.cursorLine] =
-				line[0:e.cursorChar] +
-				string(ev.Ch) +
-				line[e.cursorChar:len(line)]
+			e.lines[e.cursorLine] = pre + string(ev.Ch) + post
 			e.cursorChar++
 		} else {
 			switch (ev.Key) {
@@ -136,10 +136,15 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 				e.cursorLine--
 			case termbox.KeyArrowDown:
 				e.cursorLine++
+			case termbox.KeyBackspace, termbox.KeyBackspace2:
+				preLen := max(0, len(pre) - 1)
+				e.lines[e.cursorLine] = pre[0:preLen] + post
+				e.cursorChar--
 			}
 		}
 	}
 
+	// Clamp the cursor to its constraints
 	e.cursorLine = max(0, e.cursorLine)
 	e.cursorLine = min(len(e.lines) - 1, e.cursorLine)
 
