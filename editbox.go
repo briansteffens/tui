@@ -20,19 +20,6 @@ type Editbox struct {
 	mode       int
 }
 
-func splitRows(line string, textWidth int) []string {
-	rows := len(line) / textWidth + 1
-	ret := make([]string, rows)
-
-	for i := 0; i < rows; i++ {
-		start := i * textWidth
-		stop := min((i + 1) * textWidth, len(line))
-		ret[i] = line[start:stop]
-	}
-
-	return ret
-}
-
 func (e *Editbox) Render() {
 	textWidth := e.Bounds.Width - 2
 	textHeight := e.Bounds.Height - 3
