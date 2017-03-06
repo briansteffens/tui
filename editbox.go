@@ -143,6 +143,34 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 				preLen := max(0, len(pre) - 1)
 				e.lines[e.cursorLine] = pre[0:preLen] + post
 				e.cursorChar--
+			case termbox.KeyEnter:
+				preLines := e.lines[0:e.cursorLine]
+				postLines := e.lines[e.cursorLine + 1:
+						     len(e.lines)]
+
+				newLines := make([]string, len(e.lines) + 1)
+				j := 0
+
+				for i := 0; i < len(preLines); i++ {
+					newLines[j] = preLines[i]
+					j++
+				}
+
+				newLines[j] = pre
+				j++
+
+				newLines[j] = post
+				j++
+
+				for i := 0; i < len(postLines); i++ {
+					newLines[j] = postLines[i]
+					j++
+				}
+
+				e.lines = newLines
+
+				e.cursorLine++
+				e.cursorChar = 0
 			}
 		}
 	}
