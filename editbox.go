@@ -88,8 +88,12 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 	}
 
 	line := e.lines[e.cursorLine]
+
 	pre  := line[0:e.cursorChar]
 	post := line[e.cursorChar:len(line)]
+
+	preLines := e.lines[0:e.cursorLine]
+	postLines := e.lines[e.cursorLine + 1:len(e.lines)]
 
 	if e.mode == CommandMode {
 		switch ev.Ch {
@@ -127,14 +131,33 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 			case termbox.KeyArrowDown:
 				e.cursorLine++
 			case termbox.KeyBackspace, termbox.KeyBackspace2:
-				preLen := max(0, len(pre) - 1)
-				e.lines[e.cursorLine] = pre[0:preLen] + post
-				e.cursorChar--
-			case termbox.KeyEnter:
-				preLines := e.lines[0:e.cursorLine]
-				postLines := e.lines[e.cursorLine + 1:
-						     len(e.lines)]
+				if len(pre) > 0 {
+					e.lines[e.cursorLine] =
+						pre[0:len(pre) - 1] + post
+					e.cursorChar--
+				} else if e.cursorLine > 0 {
+					newLines := make([]string,
+							 len(e.lines) - 1)
+					j := 0
 
+					for i := 0; i < len(preLines); i++ {
+						newLines[j] = preLines[i]
+						j++
+					}
+
+					for i := 0; i < len(postLines); i++ {
+						newLines[j] = postLines[i]
+						j++
+					}
+
+					e.lines = newLines
+
+					e.cursorLine--
+					e.cursorChar = len(
+						e.lines[e.cursorLine])
+					e.lines[e.cursorLine] += post
+				}
+			case termbox.KeyEnter:
 				newLines := make([]string, len(e.lines) + 1)
 				j := 0
 
