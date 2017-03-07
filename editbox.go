@@ -87,102 +87,10 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 		return
 	}
 
-	line := e.lines[e.cursorLine]
-
-	pre  := line[0:e.cursorChar]
-	post := line[e.cursorChar:len(line)]
-
-	preLines := e.lines[0:e.cursorLine]
-	postLines := e.lines[e.cursorLine + 1:len(e.lines)]
-
 	if e.mode == CommandMode {
-		switch ev.Ch {
-		case 'h':
-			e.cursorChar--
-		case 'l':
-			e.cursorChar++
-		case 'k':
-			e.cursorLine--
-		case 'j':
-			e.cursorLine++
-		case '0':
-			e.cursorChar = 0
-		case 'i':
-			e.mode = InsertMode
-		case 'A':
-			e.cursorChar = len(line)
-			e.mode = InsertMode
-		}
+		e.handleCommandModeEvent(ev)
 	} else if e.mode == InsertMode {
-		if ev.Key == termbox.KeyEsc {
-			e.mode = CommandMode
-			e.cursorChar--
-		} else if renderableChar(ev.Key) {
-			e.lines[e.cursorLine] = pre + string(ev.Ch) + post
-			e.cursorChar++
-		} else {
-			switch (ev.Key) {
-			case termbox.KeyArrowLeft:
-				e.cursorChar--
-			case termbox.KeyArrowRight:
-				e.cursorChar++
-			case termbox.KeyArrowUp:
-				e.cursorLine--
-			case termbox.KeyArrowDown:
-				e.cursorLine++
-			case termbox.KeyBackspace, termbox.KeyBackspace2:
-				if len(pre) > 0 {
-					e.lines[e.cursorLine] =
-						pre[0:len(pre) - 1] + post
-					e.cursorChar--
-				} else if e.cursorLine > 0 {
-					newLines := make([]string,
-							 len(e.lines) - 1)
-					j := 0
-
-					for i := 0; i < len(preLines); i++ {
-						newLines[j] = preLines[i]
-						j++
-					}
-
-					for i := 0; i < len(postLines); i++ {
-						newLines[j] = postLines[i]
-						j++
-					}
-
-					e.lines = newLines
-
-					e.cursorLine--
-					e.cursorChar = len(
-						e.lines[e.cursorLine])
-					e.lines[e.cursorLine] += post
-				}
-			case termbox.KeyEnter:
-				newLines := make([]string, len(e.lines) + 1)
-				j := 0
-
-				for i := 0; i < len(preLines); i++ {
-					newLines[j] = preLines[i]
-					j++
-				}
-
-				newLines[j] = pre
-				j++
-
-				newLines[j] = post
-				j++
-
-				for i := 0; i < len(postLines); i++ {
-					newLines[j] = postLines[i]
-					j++
-				}
-
-				e.lines = newLines
-
-				e.cursorLine++
-				e.cursorChar = 0
-			}
-		}
+		e.handleInsertModeEvent(ev)
 	}
 
 	// Clamp the cursor to its constraints
@@ -197,4 +105,103 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 	}
 
 	e.cursorChar = min(minChar, e.cursorChar)
+}
+
+func (e *Editbox) handleCommandModeEvent(ev escapebox.Event) {
+	switch ev.Ch {
+	case 'h':
+		e.cursorChar--
+	case 'l':
+		e.cursorChar++
+	case 'k':
+		e.cursorLine--
+	case 'j':
+		e.cursorLine++
+	case '0':
+		e.cursorChar = 0
+	case 'i':
+		e.mode = InsertMode
+	case 'A':
+		e.cursorChar = len(e.lines[e.cursorLine])
+		e.mode = InsertMode
+	}
+}
+
+func (e *Editbox) handleInsertModeEvent(ev escapebox.Event) {
+	line := e.lines[e.cursorLine]
+
+	pre  := line[0:e.cursorChar]
+	post := line[e.cursorChar:len(line)]
+
+	preLines := e.lines[0:e.cursorLine]
+	postLines := e.lines[e.cursorLine + 1:len(e.lines)]
+
+	if ev.Key == termbox.KeyEsc {
+		e.mode = CommandMode
+		e.cursorChar--
+		return
+	} else if renderableChar(ev.Key) {
+		e.lines[e.cursorLine] = pre + string(ev.Ch) + post
+		e.cursorChar++
+		return
+	}
+
+	switch (ev.Key) {
+	case termbox.KeyArrowLeft:
+		e.cursorChar--
+	case termbox.KeyArrowRight:
+		e.cursorChar++
+	case termbox.KeyArrowUp:
+		e.cursorLine--
+	case termbox.KeyArrowDown:
+		e.cursorLine++
+	case termbox.KeyBackspace, termbox.KeyBackspace2:
+		if len(pre) > 0 {
+			e.lines[e.cursorLine] = pre[0:len(pre) - 1] + post
+			e.cursorChar--
+		} else if e.cursorLine > 0 {
+			newLines := make([]string, len(e.lines) - 1)
+			j := 0
+
+			for i := 0; i < len(preLines); i++ {
+				newLines[j] = preLines[i]
+				j++
+			}
+
+			for i := 0; i < len(postLines); i++ {
+				newLines[j] = postLines[i]
+				j++
+			}
+
+			e.lines = newLines
+
+			e.cursorLine--
+			e.cursorChar = len(e.lines[e.cursorLine])
+			e.lines[e.cursorLine] += post
+		}
+	case termbox.KeyEnter:
+		newLines := make([]string, len(e.lines) + 1)
+		j := 0
+
+		for i := 0; i < len(preLines); i++ {
+			newLines[j] = preLines[i]
+			j++
+		}
+
+		newLines[j] = pre
+		j++
+
+		newLines[j] = post
+		j++
+
+		for i := 0; i < len(postLines); i++ {
+			newLines[j] = postLines[i]
+			j++
+		}
+
+		e.lines = newLines
+
+		e.cursorLine++
+		e.cursorChar = 0
+	}
 }
