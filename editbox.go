@@ -167,10 +167,11 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 	e.cursorLine = min(len(e.lines) - 1, e.cursorLine)
 
 	e.cursorChar = max(0, e.cursorChar)
-	if e.mode == InsertMode {
-		e.cursorChar = min(len(e.lines[e.cursorLine]), e.cursorChar)
-	} else {
-		e.cursorChar = min(len(e.lines[e.cursorLine]) - 1,
-				   e.cursorChar)
+
+	minChar := len(e.lines[e.cursorLine])
+	if e.mode == CommandMode && minChar > 0 {
+	    minChar--
 	}
+
+	e.cursorChar = min(minChar, e.cursorChar)
 }

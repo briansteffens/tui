@@ -34,14 +34,15 @@ func main() {
 			"Hello! This is a file which has a line!",
 			"And here is another line woah",
 			"And yet another",
+            "",
 			"Guess what",
 			"They keep going!",
 			"Again! Another wrapping line gogogo",
 			"Ok one more",
 		},
 		scroll: 0,
-		cursorLine: 6,
-		cursorChar: 5,
+		cursorLine: 4,
+		cursorChar: 3,
 	}
 
 	l := Label {
