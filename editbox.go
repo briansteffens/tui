@@ -54,7 +54,7 @@ func (e *Editbox) Render() {
 		e.scroll = cursorRow - textHeight + 1
 	}
 
-	scrollEnd := e.scroll + textHeight
+	scrollEnd := min(len(virtualLines), e.scroll + textHeight)
 
 	for i := e.scroll; i < scrollEnd; i++ {
 		termPrintf(e.Bounds.Left + 1, e.Bounds.Top + 1 + i - e.scroll,
