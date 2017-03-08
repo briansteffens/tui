@@ -8,4 +8,5 @@ go run \
     checkbox.go \
     button.go \
     editbox.go \
+    detailview.go \
     main.go

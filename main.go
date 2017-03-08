@@ -75,9 +75,22 @@ func main() {
 		ClickHandler: buttonClickHandler,
 	}
 
+	dv := Detailview {
+		Bounds: Rect { Left: 2, Top: 20, Width: 30, Height: 6 },
+		Columns: []Column {
+			Column { Name: "ID", Width: 8 },
+			Column { Name: "Name", Width: 12 },
+		},
+		Rows: [][]string {
+			[]string { "3", "Brian" },
+			[]string { "7", "Another Brian" },
+			[]string { "13", "So many Brians" },
+		},
+		scroll: 0,
+	}
+
 	c := Container {
-		Controls: []Control {&t, &edit1, &l, &t2, &checkbox1,
-				     &button1},
+		Controls: []Control {&t, &dv, &edit1, &l, &t2, &checkbox1, &button1},
 	}
 
 	c.FocusNext()
