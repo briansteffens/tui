@@ -13,11 +13,20 @@ type Column struct {
 type Detailview struct {
 	Bounds     Rect
 	focus      bool
-	scroll     int
+	scrollCol  int
+	scrollRow  int
 	cursorCol  int
 	cursorRow  int
 	Columns    []Column
 	Rows	   [][]string
+}
+
+func (d *Detailview) SetFocus() {
+	d.focus = true
+}
+
+func (d *Detailview) UnsetFocus() {
+	d.focus = false
 }
 
 func renderValue(src string, maxWidth int) string {
@@ -25,12 +34,33 @@ func renderValue(src string, maxWidth int) string {
 	return src[0:maxLen]
 }
 
-func (d *Detailview) heightForRows() int {
+func (d *Detailview) viewHeight() int {
 	return d.Bounds.Height - 3 // 2 borders and column line
 }
 
-func (d *Detailview) scrollEnd() int {
-	return min(len(d.Rows), d.scroll + d.heightForRows())
+func (d *Detailview) viewWidth() int {
+	return d.Bounds.Width - 2 // 2 borders
+}
+
+func (d *Detailview) lastVisibleRow() int {
+	return min(len(d.Rows), d.scrollRow + d.viewHeight())
+}
+
+/*
+func (d *Detailview) lastVisibleCol() int {
+	
+	ret := 0
+}
+*/
+
+func (d *Detailview) columnLeft(colIndex int) int {
+	ret := 0
+
+	for i := 0; i < colIndex; i++ {
+		ret += d.Columns[i].Width
+	}
+
+	return ret
 }
 
 func (d *Detailview) Render() {
@@ -47,7 +77,7 @@ func (d *Detailview) Render() {
 	cursorX := 0
 	cursorY := 0
 
-	for r := d.scroll; r < d.scrollEnd(); r++ {
+	for r := d.scrollRow; r < d.lastVisibleRow(); r++ {
 		left = d.Bounds.Left + 1
 		top++
 
@@ -67,14 +97,6 @@ func (d *Detailview) Render() {
 	if d.focus {
 		termbox.SetCursor(cursorX, cursorY)
 	}
-}
-
-func (d *Detailview) SetFocus() {
-	d.focus = true
-}
-
-func (d *Detailview) UnsetFocus() {
-	d.focus = false
 }
 
 func (d *Detailview) HandleEvent(ev escapebox.Event) {
@@ -101,11 +123,24 @@ func (d *Detailview) HandleEvent(ev escapebox.Event) {
 	d.cursorCol = min(len(d.Columns) - 1, d.cursorCol)
 
 	// Clamp scroll
-	if d.cursorRow < d.scroll {
-		d.scroll = d.cursorRow
+	if d.cursorRow < d.scrollRow {
+		d.scrollRow = d.cursorRow
 	}
 
-	if d.cursorRow >= d.scrollEnd() {
-		d.scroll = d.cursorRow - d.heightForRows() + 1
+	if d.cursorRow >= d.lastVisibleRow() {
+		d.scrollRow = d.cursorRow - d.viewHeight() + 1
 	}
+/*
+	if d.columnLeft(d.cursorCol) < d.scrollCol {
+		d.scrollCol = d.columnLeft(d.cursorCol)
+	}
+
+	if d.columnLeft(d.cursorCol) >= d.scrollColEnd() {
+		d.scrollCol = d.columnLeft(d.cursorCol) - d.viewWidth() + 1
+	}
+*/
+}
+
+func (d *Detailview) scrollColEnd() int {
+	return d.scrollCol + d.viewWidth() - 1
 }

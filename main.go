@@ -76,17 +76,18 @@ func main() {
 	}
 
 	dv := Detailview {
-		Bounds: Rect { Left: 2, Top: 20, Width: 30, Height: 4 },
+		Bounds: Rect { Left: 2, Top: 20, Width: 15, Height: 4 },
 		Columns: []Column {
 			Column { Name: "ID", Width: 8 },
 			Column { Name: "Name", Width: 12 },
+			Column { Name: "More Data", Width: 20 },
 		},
 		Rows: [][]string {
-			[]string { "3", "Brian" },
-			[]string { "7", "Another Brian" },
-			[]string { "13", "So many Brians" },
+			[]string { "3", "Brian", "Other details" },
+			[]string { "7", "Another Brian", "Yes very many details" },
+			[]string { "13", "So many Brians", "Such an informative table" },
 		},
-		scroll: 2,
+		scrollRow: 2,
 		cursorRow: 2,
 	}
 
