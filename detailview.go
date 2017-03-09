@@ -216,23 +216,7 @@ func (d *Detailview) Render() {
 			}
 		}
 	}
-/*
-	y := 0
-	x := 0
-	var i uint16
 
-	for i = 0; i < 256; i++ {
-		x++
-		if x > 50 {
-			x = 0
-			y++
-		}
-		termbox.SetCell(x, y, 'M', termbox.ColorWhite, termbox.Attribute(i))
-	}
-
-	termbox.SetCell(0, 10, 'A', termbox.ColorWhite, termbox.Attribute(20))
-	termbox.SetCell(1, 10, 'A', termbox.ColorWhite, termbox.Attribute(236))
-*/
 	if d.focus {
 		termbox.HideCursor()
 	}
@@ -243,7 +227,8 @@ func (d *Detailview) HandleEvent(ev escapebox.Event) {
 		return
 	}
 
-	cursorChanged := true
+	oldCursorRow := d.cursorRow
+	oldCursorCol := d.cursorCol
 
 	switch ev.Ch {
 	case 'k':
@@ -254,8 +239,6 @@ func (d *Detailview) HandleEvent(ev escapebox.Event) {
 		d.cursorCol--
 	case 'l':
 		d.cursorCol++
-	default:
-		cursorChanged = false
 	}
 
 	switch ev.Key {
@@ -271,6 +254,9 @@ func (d *Detailview) HandleEvent(ev escapebox.Event) {
 
 	d.cursorCol = max(0, d.cursorCol)
 	d.cursorCol = min(len(d.Columns) - 1, d.cursorCol)
+
+	cursorChanged := oldCursorRow != d.cursorRow ||
+			 oldCursorCol != d.cursorCol
 
 	// Clamp scroll
 	d.scrollCol = max(d.scrollCol, 0)
@@ -293,11 +279,11 @@ func (d *Detailview) HandleEvent(ev escapebox.Event) {
 		}
 
 		if d.columnLeft(d.cursorCol) >= d.scrollColEnd() {
-			// - d.viewWidth() + 1
 			d.scrollCol = d.columnLeft(d.cursorCol)
 		}
 
-		if d.columnRight(d.cursorCol) > d.scrollColEnd() {
+		if d.columnRight(d.cursorCol) > d.scrollColEnd() &&
+		   d.columnLeft(d.cursorCol) > d.scrollCol {
 			d.scrollCol = min(
 				d.columnLeft(d.cursorCol),
 				d.columnRight(d.cursorCol) - d.scrollColEnd())
