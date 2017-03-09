@@ -12,10 +12,6 @@ const (
 	SeqShiftTab = 1
 )
 
-func buttonClickHandler(b *button) {
-	panic("clicked!")
-}
-
 var outFile *os.File
 
 func log(format string, args ...interface{}) {

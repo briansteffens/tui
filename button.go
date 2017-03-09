@@ -5,16 +5,16 @@ import (
 	"github.com/briansteffens/escapebox"
 )
 
-type ButtonClickEvent func(*button)
+type ButtonClickEvent func(*Button)
 
-type button struct {
+type Button struct {
 	Bounds       Rect
 	Text         string
 	focus        bool
 	ClickHandler ButtonClickEvent
 }
 
-func (b *button) Render() {
+func (b *Button) Render() {
 	RenderBorder(b.Bounds)
 
 	count := min(len(b.Text), b.Bounds.Width - 4)
@@ -25,15 +25,15 @@ func (b *button) Render() {
 	}
 }
 
-func (b *button) SetFocus() {
+func (b *Button) SetFocus() {
 	b.focus = true
 }
 
-func (b *button) UnsetFocus() {
+func (b *Button) UnsetFocus() {
 	b.focus = false
 }
 
-func (b *button) HandleEvent(ev escapebox.Event) {
+func (b *Button) HandleEvent(ev escapebox.Event) {
 	switch ev.Type {
 	case termbox.EventKey:
 		switch ev.Key {

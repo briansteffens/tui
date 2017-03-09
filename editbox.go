@@ -12,7 +12,7 @@ const (
 
 type Editbox struct {
 	Bounds     Rect
-	lines      []string
+	Lines      []string
 	cursorLine int
 	cursorChar int
 	scroll     int
@@ -30,7 +30,7 @@ func (e *Editbox) Render() {
 	cursorRow := 0
 	cursorCol := 0
 
-	for lineIndex, line := range e.lines {
+	for lineIndex, line := range e.Lines {
 		virtualLineCount := len(line) / textWidth + 1
 
 		if e.cursorLine == lineIndex {
@@ -95,11 +95,11 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 
 	// Clamp the cursor to its constraints
 	e.cursorLine = max(0, e.cursorLine)
-	e.cursorLine = min(len(e.lines) - 1, e.cursorLine)
+	e.cursorLine = min(len(e.Lines) - 1, e.cursorLine)
 
 	e.cursorChar = max(0, e.cursorChar)
 
-	minChar := len(e.lines[e.cursorLine])
+	minChar := len(e.Lines[e.cursorLine])
 	if e.mode == CommandMode && minChar > 0 {
 	    minChar--
 	}
@@ -122,26 +122,26 @@ func (e *Editbox) handleCommandModeEvent(ev escapebox.Event) {
 	case 'i':
 		e.mode = InsertMode
 	case 'A':
-		e.cursorChar = len(e.lines[e.cursorLine])
+		e.cursorChar = len(e.Lines[e.cursorLine])
 		e.mode = InsertMode
 	}
 }
 
 func (e *Editbox) handleInsertModeEvent(ev escapebox.Event) {
-	line := e.lines[e.cursorLine]
+	line := e.Lines[e.cursorLine]
 
 	pre  := line[0:e.cursorChar]
 	post := line[e.cursorChar:len(line)]
 
-	preLines := e.lines[0:e.cursorLine]
-	postLines := e.lines[e.cursorLine + 1:len(e.lines)]
+	preLines := e.Lines[0:e.cursorLine]
+	postLines := e.Lines[e.cursorLine + 1:len(e.Lines)]
 
 	if ev.Key == termbox.KeyEsc {
 		e.mode = CommandMode
 		e.cursorChar--
 		return
 	} else if renderableChar(ev.Key) {
-		e.lines[e.cursorLine] = pre + string(ev.Ch) + post
+		e.Lines[e.cursorLine] = pre + string(ev.Ch) + post
 		e.cursorChar++
 		return
 	}
@@ -157,10 +157,10 @@ func (e *Editbox) handleInsertModeEvent(ev escapebox.Event) {
 		e.cursorLine++
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		if len(pre) > 0 {
-			e.lines[e.cursorLine] = pre[0:len(pre) - 1] + post
+			e.Lines[e.cursorLine] = pre[0:len(pre) - 1] + post
 			e.cursorChar--
 		} else if e.cursorLine > 0 {
-			newLines := make([]string, len(e.lines) - 1)
+			newLines := make([]string, len(e.Lines) - 1)
 			j := 0
 
 			for i := 0; i < len(preLines); i++ {
@@ -173,14 +173,14 @@ func (e *Editbox) handleInsertModeEvent(ev escapebox.Event) {
 				j++
 			}
 
-			e.lines = newLines
+			e.Lines = newLines
 
 			e.cursorLine--
-			e.cursorChar = len(e.lines[e.cursorLine])
-			e.lines[e.cursorLine] += post
+			e.cursorChar = len(e.Lines[e.cursorLine])
+			e.Lines[e.cursorLine] += post
 		}
 	case termbox.KeyEnter:
-		newLines := make([]string, len(e.lines) + 1)
+		newLines := make([]string, len(e.Lines) + 1)
 		j := 0
 
 		for i := 0; i < len(preLines); i++ {
@@ -199,7 +199,7 @@ func (e *Editbox) handleInsertModeEvent(ev escapebox.Event) {
 			j++
 		}
 
-		e.lines = newLines
+		e.Lines = newLines
 
 		e.cursorLine++
 		e.cursorChar = 0
