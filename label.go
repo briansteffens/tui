@@ -1,4 +1,4 @@
-package main
+package tui
 
 type Label struct {
 	Bounds Rect
