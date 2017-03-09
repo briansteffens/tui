@@ -172,7 +172,7 @@ func (d *Detailview) Render() {
 
 			colColor := rowColor
 
-			if d.cursorCol == ci && d.cursorRow == r {
+			if d.cursorCol == ci && d.cursorRow == r && d.focus {
 				colColor = d.SelectedBg
 			}
 
