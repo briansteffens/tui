@@ -20,6 +20,11 @@ func max(a, b int) int {
 	return b
 }
 
+// Non-standard escape sequences
+const (
+	SeqShiftTab = 1
+)
+
 func renderableChar(k termbox.Key) bool {
 	return k != termbox.KeyEnter      &&
 	       k != termbox.KeyPgup       &&
@@ -92,3 +97,71 @@ type Focusable interface {
 	UnsetFocus()
 	HandleEvent(escapebox.Event)
 }
+
+var outFile *os.File
+
+func log(format string, args ...interface{}) {
+	outFile.WriteString(fmt.Sprintf(format + "\n", args...))
+}
+
+func Init() {
+	var err error
+
+	outFile, err = os.Create("outfile")
+	if err != nil {
+		panic(err)
+	}
+
+	err = termbox.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	termbox.SetInputMode(termbox.InputEsc) // | termbox.InputMouse)
+	termbox.SetOutputMode(termbox.Output256)
+
+	escapebox.Init()
+
+	escapebox.Register(SeqShiftTab, 91, 90)
+}
+
+func Close() {
+	escapebox.Close()
+	termbox.Close()
+	outFile.Close()
+}
+
+func MainLoop(c Container) {
+	c.FocusNext()
+	refresh(c)
+
+	loop: for {
+		ev := escapebox.PollEvent()
+
+		handled := false
+
+		switch ev.Seq {
+		case escapebox.SeqNone:
+			switch ev.Type {
+			case termbox.EventKey:
+				switch ev.Key {
+				case termbox.KeyCtrlC:
+					break loop
+				case termbox.KeyTab:
+					c.FocusNext()
+					handled = true
+				}
+			}
+		case SeqShiftTab:
+			c.FocusPrevious()
+			handled = true
+		}
+
+		if !handled && c.Focused != nil {
+			c.Focused.HandleEvent(ev)
+		}
+
+		refresh(c)
+	}
+}
+
