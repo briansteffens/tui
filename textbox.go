@@ -6,7 +6,7 @@ import (
 	"github.com/briansteffens/escapebox"
 )
 
-type Textbox struct {
+type TextBox struct {
 	Bounds Rect
 	Value  string
 	cursor int
@@ -14,19 +14,19 @@ type Textbox struct {
 	focus  bool
 }
 
-func (t *Textbox) maxVisibleChars() int {
+func (t *TextBox) maxVisibleChars() int {
 	return t.Bounds.Width - 2
 }
 
-func (t *Textbox) visibleChars() int {
+func (t *TextBox) visibleChars() int {
 	return min(t.maxVisibleChars(), len(t.Value) - t.scroll)
 }
 
-func (t *Textbox) lastVisible() int {
+func (t *TextBox) lastVisible() int {
 	return t.scroll + t.visibleChars() - 1
 }
 
-func (t *Textbox) Render() {
+func (t *TextBox) Render() {
 	RenderBorder(t.Bounds)
 	termPrintf(t.Bounds.Left + 1, t.Bounds.Top + 1,
 		   t.Value[t.scroll:t.lastVisible() + 1])
@@ -37,15 +37,15 @@ func (t *Textbox) Render() {
 	}
 }
 
-func (t *Textbox) SetFocus() {
+func (t *TextBox) SetFocus() {
 	t.focus = true
 }
 
-func (t *Textbox) UnsetFocus() {
+func (t *TextBox) UnsetFocus() {
 	t.focus = false
 }
 
-func (t *Textbox) HandleEvent(ev escapebox.Event) {
+func (t *TextBox) HandleEvent(ev escapebox.Event) {
 	pre := t.Value[0:t.cursor]
 	post := t.Value[t.cursor:len(t.Value)]
 

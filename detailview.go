@@ -10,7 +10,7 @@ type Column struct {
 	Width int
 }
 
-type Detailview struct {
+type DetailView struct {
 	Bounds     Rect
 	focus      bool
 	scrollCol  int
@@ -24,11 +24,11 @@ type Detailview struct {
 	SelectedBg termbox.Attribute
 }
 
-func (d *Detailview) SetFocus() {
+func (d *DetailView) SetFocus() {
 	d.focus = true
 }
 
-func (d *Detailview) UnsetFocus() {
+func (d *DetailView) UnsetFocus() {
 	d.focus = false
 }
 
@@ -37,19 +37,19 @@ func renderValue(src string, maxWidth int) string {
 	return src[0:maxLen]
 }
 
-func (d *Detailview) viewHeight() int {
+func (d *DetailView) viewHeight() int {
 	return d.Bounds.Height - 3 // 2 borders and column line
 }
 
-func (d *Detailview) viewWidth() int {
+func (d *DetailView) viewWidth() int {
 	return d.Bounds.Width - 2 // 2 borders
 }
 
-func (d *Detailview) lastVisibleRow() int {
+func (d *DetailView) lastVisibleRow() int {
 	return min(len(d.Rows), d.scrollRow + d.viewHeight())
 }
 
-func (d *Detailview) firstVisibleCol() (int, int) {
+func (d *DetailView) firstVisibleCol() (int, int) {
 	left := 0
 	right := 0
 
@@ -66,7 +66,7 @@ func (d *Detailview) firstVisibleCol() (int, int) {
 	return 0, 0
 }
 
-func (d *Detailview) lastVisibleCol() (int, int) {
+func (d *DetailView) lastVisibleCol() (int, int) {
 	first, _ := d.firstVisibleCol()
 	right := -1
 
@@ -89,11 +89,11 @@ func (d *Detailview) lastVisibleCol() (int, int) {
 	return len(d.Columns) - 1, 0
 }
 
-func (d *Detailview) scrollColEnd() int {
+func (d *DetailView) scrollColEnd() int {
 	return d.scrollCol + d.viewWidth() - 1
 }
 
-func (d *Detailview) columnLeft(colIndex int) int {
+func (d *DetailView) columnLeft(colIndex int) int {
 	ret := 0
 
 	for i := 0; i < colIndex; i++ {
@@ -103,11 +103,11 @@ func (d *Detailview) columnLeft(colIndex int) int {
 	return ret
 }
 
-func (d *Detailview) columnRight(colIndex int) int {
+func (d *DetailView) columnRight(colIndex int) int {
 	return d.columnLeft(colIndex) + d.Columns[colIndex].Width - 1
 }
 
-func (d *Detailview) totalWidth() int {
+func (d *DetailView) totalWidth() int {
 	ret := 0
 
 	for _, col := range d.Columns {
@@ -117,7 +117,7 @@ func (d *Detailview) totalWidth() int {
 	return ret
 }
 
-func (d *Detailview) Render() {
+func (d *DetailView) Render() {
 	RenderBorder(d.Bounds)
 
 	top := d.Bounds.Top + 1
@@ -222,7 +222,7 @@ func (d *Detailview) Render() {
 	}
 }
 
-func (d *Detailview) HandleEvent(ev escapebox.Event) {
+func (d *DetailView) HandleEvent(ev escapebox.Event) {
 	if ev.Type != termbox.EventKey {
 		return
 	}

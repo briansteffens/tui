@@ -6,14 +6,14 @@ import (
 	"github.com/briansteffens/escapebox"
 )
 
-type Checkbox struct {
+type CheckBox struct {
 	Bounds  Rect
 	Text    string
 	Checked bool
 	focus   bool
 }
 
-func (c *Checkbox) Render() {
+func (c *CheckBox) Render() {
 	checkContent := " "
 
 	if c.Checked {
@@ -30,15 +30,15 @@ func (c *Checkbox) Render() {
 	}
 }
 
-func (c *Checkbox) SetFocus() {
+func (c *CheckBox) SetFocus() {
 	c.focus = true
 }
 
-func (c *Checkbox) UnsetFocus() {
+func (c *CheckBox) UnsetFocus() {
 	c.focus = false
 }
 
-func (c *Checkbox) HandleEvent(ev escapebox.Event) {
+func (c *CheckBox) HandleEvent(ev escapebox.Event) {
 	switch ev.Type {
 	case termbox.EventKey:
 		switch ev.Key {

@@ -10,7 +10,7 @@ const (
 	InsertMode  = 1
 )
 
-type Editbox struct {
+type EditBox struct {
 	Bounds     Rect
 	Lines      []string
 	cursorLine int
@@ -20,7 +20,7 @@ type Editbox struct {
 	mode       int
 }
 
-func (e *Editbox) Render() {
+func (e *EditBox) Render() {
 	textWidth := e.Bounds.Width - 2
 	textHeight := e.Bounds.Height - 3
 
@@ -74,15 +74,15 @@ func (e *Editbox) Render() {
 	}
 }
 
-func (e *Editbox) SetFocus() {
+func (e *EditBox) SetFocus() {
 	e.focus = true
 }
 
-func (e *Editbox) UnsetFocus() {
+func (e *EditBox) UnsetFocus() {
 	e.focus = false
 }
 
-func (e *Editbox) HandleEvent(ev escapebox.Event) {
+func (e *EditBox) HandleEvent(ev escapebox.Event) {
 	if ev.Type != termbox.EventKey {
 		return
 	}
@@ -107,7 +107,7 @@ func (e *Editbox) HandleEvent(ev escapebox.Event) {
 	e.cursorChar = min(minChar, e.cursorChar)
 }
 
-func (e *Editbox) handleCommandModeEvent(ev escapebox.Event) {
+func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) {
 	switch ev.Ch {
 	case 'h':
 		e.cursorChar--
@@ -127,7 +127,7 @@ func (e *Editbox) handleCommandModeEvent(ev escapebox.Event) {
 	}
 }
 
-func (e *Editbox) handleInsertModeEvent(ev escapebox.Event) {
+func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 	line := e.Lines[e.cursorLine]
 
 	pre  := line[0:e.cursorChar]

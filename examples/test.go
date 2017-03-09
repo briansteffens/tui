@@ -13,7 +13,7 @@ func main() {
 	tui.Init()
 	defer tui.Close()
 
-	edit1 := tui.Editbox {
+	edit1 := tui.EditBox {
 		Bounds: tui.Rect { Left: 2, Top: 6, Width: 30, Height: 10 },
 		Lines: []string {
 			"Hello! This is a file which has a line!",
@@ -32,17 +32,17 @@ func main() {
 		Text: "Greetings:",
 	}
 
-	t := tui.Textbox {
+	t := tui.TextBox {
 		Bounds: tui.Rect { Left: 2, Top: 2, Width: 5, Height: 3 },
 		Value: "12",
 	}
 
-	t2 := tui.Textbox {
+	t2 := tui.TextBox {
 		Bounds: tui.Rect { Left: 10, Top: 2, Width: 15, Height: 3},
 		Value: "Greetings!",
 	}
 
-	checkbox1 := tui.Checkbox {
+	checkbox1 := tui.CheckBox {
 		Bounds: tui.Rect { Left: 27, Top: 1, Width: 30, Height: 1},
 		Text: "Enable the whateverthing",
 	}
@@ -53,7 +53,7 @@ func main() {
 		ClickHandler: buttonClickHandler,
 	}
 
-	dv := tui.Detailview {
+	dv := tui.DetailView {
 		Bounds: tui.Rect { Left: 2, Top: 16, Width: 20, Height: 8 },
 		Columns: []tui.Column {
 			tui.Column { Name: "ID", Width: 3 },
