@@ -126,8 +126,6 @@ func (d *Detailview) Render() {
 	firstCol, firstOffset := d.firstVisibleCol()
 	lastCol, lastOffset := d.lastVisibleCol()
 
-	log("scrollCol: %d", d.scrollCol)
-
 	for ci := firstCol; ci <= lastCol; ci++ {
 		col := d.Columns[ci]
 
@@ -149,7 +147,9 @@ func (d *Detailview) Render() {
 
 		maxLen = min(maxLen, d.viewWidth())
 
-		termPrintf(left, top, renderValue(name, maxLen))
+		termPrintColorf(left, top,
+				termbox.ColorWhite | termbox.AttrBold,
+				termbox.ColorBlack, renderValue(name, maxLen))
 
 		left += col.Width
 
@@ -163,7 +163,7 @@ func (d *Detailview) Render() {
 		top++
 
 		rowColor := d.RowBg
-		if r % 2 != 0 {
+		if r % 2 == 0 {
 			rowColor = d.RowBgAlt
 		}
 
