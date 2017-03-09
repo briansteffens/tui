@@ -100,6 +100,10 @@ func (d *Detailview) columnLeft(colIndex int) int {
 	return ret
 }
 
+func (d *Detailview) columnRight(colIndex int) int {
+	return d.columnLeft(colIndex) + d.Columns[colIndex].Width - 1
+}
+
 func (d *Detailview) Render() {
 	RenderBorder(d.Bounds)
 
@@ -213,5 +217,11 @@ func (d *Detailview) HandleEvent(ev escapebox.Event) {
 
 	if d.columnLeft(d.cursorCol) >= d.scrollColEnd() {
 		d.scrollCol = d.columnLeft(d.cursorCol) // - d.viewWidth() + 1
+	}
+
+	if d.columnRight(d.cursorCol) > d.scrollColEnd() {
+		d.scrollCol = min(
+			d.columnLeft(d.cursorCol),
+			d.columnRight(d.cursorCol) - d.scrollColEnd())
 	}
 }
