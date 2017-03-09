@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"fmt"
 	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
