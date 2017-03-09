@@ -38,6 +38,7 @@ func main() {
 	defer termbox.Close()
 
 	termbox.SetInputMode(termbox.InputEsc) // | termbox.InputMouse)
+	termbox.SetOutputMode(termbox.Output256)
 
 	escapebox.Init()
 	defer escapebox.Close()
@@ -92,7 +93,7 @@ func main() {
 	}
 
 	dv := Detailview {
-		Bounds: Rect { Left: 2, Top: 20, Width: 7, Height: 4 },
+		Bounds: Rect { Left: 2, Top: 16, Width: 20, Height: 8 },
 		Columns: []Column {
 			Column { Name: "ID", Width: 3 },
 			Column { Name: "Name", Width: 5 },
@@ -104,9 +105,11 @@ func main() {
 			[]string { "13", "C", "Such an informative table" },
 			[]string { "17", "D", "Abcdefghijklmnopqrst" },
 		},
-		scrollRow: 2,
-		scrollCol: 1,
-		cursorRow: 2,
+		scrollRow: 0,
+		scrollCol: 0,
+		cursorRow: 0,
+		RowBg: termbox.Attribute(0),
+		RowBgAlt: termbox.Attribute(236),
 	}
 
 	c := Container {

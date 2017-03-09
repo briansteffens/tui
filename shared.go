@@ -38,9 +38,15 @@ func setCell(x, y int, r rune) {
 }
 
 func termPrintf(x, y int, format string, args ...interface{}) {
+	termPrintColorf(x, y, termbox.ColorWhite, termbox.ColorBlack, format,
+			args...)
+}
+
+func termPrintColorf(x, y int, fg, bg termbox.Attribute, format string,
+		     args ...interface{}) {
 	s := fmt.Sprintf(format, args...)
 	for i, c := range s {
-		setCell(x + i, y, c)
+		termbox.SetCell(x + i, y, c, fg, bg)
 	}
 }
 
