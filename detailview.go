@@ -21,6 +21,7 @@ type Detailview struct {
 	Rows	   [][]string
 	RowBg	   termbox.Attribute
 	RowBgAlt   termbox.Attribute
+	SelectedBg termbox.Attribute
 }
 
 func (d *Detailview) SetFocus() {
@@ -157,9 +158,6 @@ func (d *Detailview) Render() {
 		}
 	}
 
-	cursorX := 0
-	cursorY := 0
-
 	for r := d.scrollRow; r < d.lastVisibleRow(); r++ {
 		left = d.Bounds.Left + 1
 		top++
@@ -169,10 +167,14 @@ func (d *Detailview) Render() {
 			rowColor = d.RowBgAlt
 		}
 
-		log("rowColor: %d", rowColor)
-
 		for ci := firstCol; ci <= lastCol; ci++ {
 			col := d.Columns[ci]
+
+			colColor := rowColor
+
+			if d.cursorCol == ci && d.cursorRow == r {
+				colColor = d.SelectedBg
+			}
 
 			val := d.Rows[r][ci]
 
@@ -205,12 +207,7 @@ func (d *Detailview) Render() {
 			}
 
 			termPrintColorf(left, top, termbox.ColorWhite,
-					rowColor, val)
-
-			if d.cursorCol == ci && d.cursorRow == r {
-				cursorX = left
-				cursorY = top
-			}
+					colColor, val)
 
 			left += col.Width
 
@@ -219,7 +216,6 @@ func (d *Detailview) Render() {
 			}
 		}
 	}
-
 /*
 	y := 0
 	x := 0
@@ -231,27 +227,14 @@ func (d *Detailview) Render() {
 			x = 0
 			y++
 		}
-		kermbox.SetCell(x, y, 'M', termbox.ColorWhite, termbox.Attribute(i))
+		termbox.SetCell(x, y, 'M', termbox.ColorWhite, termbox.Attribute(i))
 	}
 
-	termbox.SetCell(0, 10, 'A', termbox.ColorWhite, termbox.Attribute(9))
+	termbox.SetCell(0, 10, 'A', termbox.ColorWhite, termbox.Attribute(20))
 	termbox.SetCell(1, 10, 'A', termbox.ColorWhite, termbox.Attribute(236))
 */
-
-/*
-ColorDefault Attribute = iota
-ColorBlack
-ColorRed
-ColorGreen
-ColorYellow
-ColorBlue
-ColorMagenta
-ColorCyan
-ColorWhite
-*/
-
 	if d.focus {
-		termbox.SetCursor(cursorX, cursorY)
+		termbox.HideCursor()
 	}
 }
 

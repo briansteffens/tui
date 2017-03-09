@@ -110,6 +110,7 @@ func main() {
 		cursorRow: 0,
 		RowBg: termbox.Attribute(0),
 		RowBgAlt: termbox.Attribute(236),
+		SelectedBg: termbox.Attribute(20),
 	}
 
 	c := Container {
