@@ -46,12 +46,49 @@ func (d *Detailview) lastVisibleRow() int {
 	return min(len(d.Rows), d.scrollRow + d.viewHeight())
 }
 
-/*
-func (d *Detailview) lastVisibleCol() int {
-	
-	ret := 0
+func (d *Detailview) firstVisibleCol() (int, int) {
+	left := 0
+	right := 0
+
+	for ci, col := range d.Columns {
+		right = left + col.Width
+
+		if d.scrollCol < right {
+			return ci, d.scrollCol - left
+		}
+
+		left += col.Width
+	}
+
+	return 0, 0
 }
-*/
+
+func (d *Detailview) lastVisibleCol() (int, int) {
+	first, _ := d.firstVisibleCol()
+	right := -1
+
+	for ci, col := range d.Columns {
+		right += col.Width
+
+		if ci < first {
+			continue
+		}
+
+		if d.scrollColEnd() <= right {
+			if ci == 1 {
+				//panic(d.scrollColEnd())
+				//panic(right)
+			}
+			return ci, right - d.scrollColEnd()
+		}
+	}
+
+	return len(d.Columns) - 1, 0
+}
+
+func (d *Detailview) scrollColEnd() int {
+	return d.scrollCol + d.viewWidth() - 1
+}
 
 func (d *Detailview) columnLeft(colIndex int) int {
 	ret := 0
@@ -69,9 +106,31 @@ func (d *Detailview) Render() {
 	top := d.Bounds.Top + 1
 	left := d.Bounds.Left + 1
 
-	for _, col := range d.Columns {
-		termPrintf(left, top, renderValue(col.Name, col.Width))
+	firstCol, firstOffset := d.firstVisibleCol()
+	lastCol, lastOffset := d.lastVisibleCol()
+
+	for ci := firstCol; ci <= lastCol; ci++ {
+		col := d.Columns[ci]
+
+		name := col.Name
+
+		if ci == firstCol {
+			name = name[firstOffset:len(name)]
+		}
+
+		maxLen := col.Width
+
+		if ci == lastCol {
+			maxLen = min(maxLen, col.Width - lastOffset)
+		}
+
+		termPrintf(left, top, renderValue(name, maxLen))
+
 		left += col.Width
+
+		if ci == firstCol {
+			left -= firstOffset
+		}
 	}
 
 	cursorX := 0
@@ -81,9 +140,22 @@ func (d *Detailview) Render() {
 		left = d.Bounds.Left + 1
 		top++
 
-		for ci, col := range d.Columns {
-			termPrintf(left, top,
-				   renderValue(d.Rows[r][ci], col.Width))
+		for ci := firstCol; ci <= lastCol; ci++ {
+			col := d.Columns[ci]
+
+			val := d.Rows[r][ci]
+
+			if ci == firstCol {
+				val = val[firstOffset:len(val)]
+			}
+
+			maxLen := col.Width
+
+			if ci == lastCol {
+				maxLen = min(maxLen, col.Width - lastOffset)
+			}
+
+			termPrintf(left, top, renderValue(val, maxLen))
 
 			if d.cursorCol == ci && d.cursorRow == r {
 				cursorX = left
@@ -91,6 +163,10 @@ func (d *Detailview) Render() {
 			}
 
 			left += col.Width
+
+			if ci == firstCol {
+				left -= firstOffset
+			}
 		}
 	}
 
@@ -130,17 +206,12 @@ func (d *Detailview) HandleEvent(ev escapebox.Event) {
 	if d.cursorRow >= d.lastVisibleRow() {
 		d.scrollRow = d.cursorRow - d.viewHeight() + 1
 	}
-/*
+
 	if d.columnLeft(d.cursorCol) < d.scrollCol {
 		d.scrollCol = d.columnLeft(d.cursorCol)
 	}
 
 	if d.columnLeft(d.cursorCol) >= d.scrollColEnd() {
-		d.scrollCol = d.columnLeft(d.cursorCol) - d.viewWidth() + 1
+		d.scrollCol = d.columnLeft(d.cursorCol) // - d.viewWidth() + 1
 	}
-*/
-}
-
-func (d *Detailview) scrollColEnd() int {
-	return d.scrollCol + d.viewWidth() - 1
 }
