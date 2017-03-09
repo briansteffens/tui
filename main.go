@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"fmt"
 	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
 )
@@ -14,8 +16,22 @@ func buttonClickHandler(b *button) {
 	panic("clicked!")
 }
 
+var outFile *os.File
+
+func log(format string, args ...interface{}) {
+	outFile.WriteString(fmt.Sprintf(format + "\n", args...))
+}
+
 func main() {
-	err := termbox.Init()
+	var err error
+
+	outFile, err = os.Create("outfile")
+	if err != nil {
+		panic(err)
+	}
+	defer outFile.Close()
+
+	err = termbox.Init()
 	if err != nil {
 		panic(err)
 	}
@@ -86,6 +102,7 @@ func main() {
 			[]string { "3", "A", "Other details" },
 			[]string { "7", "B", "Yes very many details" },
 			[]string { "13", "C", "Such an informative table" },
+			[]string { "17", "D", "Abcdefghijklmnopqrst" },
 		},
 		scrollRow: 2,
 		scrollCol: 1,

@@ -104,6 +104,16 @@ func (d *Detailview) columnRight(colIndex int) int {
 	return d.columnLeft(colIndex) + d.Columns[colIndex].Width - 1
 }
 
+func (d *Detailview) totalWidth() int {
+	ret := 0
+
+	for _, col := range d.Columns {
+		ret += col.Width
+	}
+
+	return ret
+}
+
 func (d *Detailview) Render() {
 	RenderBorder(d.Bounds)
 
@@ -113,13 +123,19 @@ func (d *Detailview) Render() {
 	firstCol, firstOffset := d.firstVisibleCol()
 	lastCol, lastOffset := d.lastVisibleCol()
 
+	log("scrollCol: %d", d.scrollCol)
+
 	for ci := firstCol; ci <= lastCol; ci++ {
 		col := d.Columns[ci]
 
 		name := col.Name
 
 		if ci == firstCol {
-			name = name[firstOffset:len(name)]
+			if len(name) - firstOffset >= 0 {
+				name = name[firstOffset:len(name)]
+			} else {
+				name = ""
+			}
 		}
 
 		maxLen := col.Width
@@ -127,6 +143,8 @@ func (d *Detailview) Render() {
 		if ci == lastCol {
 			maxLen = min(maxLen, col.Width - lastOffset)
 		}
+
+		maxLen = min(maxLen, d.viewWidth())
 
 		termPrintf(left, top, renderValue(name, maxLen))
 
@@ -150,7 +168,11 @@ func (d *Detailview) Render() {
 			val := d.Rows[r][ci]
 
 			if ci == firstCol {
-				val = val[firstOffset:len(val)]
+				if len(val) - firstOffset <= 0 {
+					val = ""
+				} else {
+					val = val[firstOffset:len(val)]
+				}
 			}
 
 			maxLen := col.Width
@@ -158,6 +180,8 @@ func (d *Detailview) Render() {
 			if ci == lastCol {
 				maxLen = min(maxLen, col.Width - lastOffset)
 			}
+
+			maxLen = min(maxLen, d.viewWidth())
 
 			termPrintf(left, top, renderValue(val, maxLen))
 
@@ -184,6 +208,8 @@ func (d *Detailview) HandleEvent(ev escapebox.Event) {
 		return
 	}
 
+	cursorChanged := true
+
 	switch ev.Ch {
 	case 'k':
 		d.cursorRow--
@@ -193,6 +219,15 @@ func (d *Detailview) HandleEvent(ev escapebox.Event) {
 		d.cursorCol--
 	case 'l':
 		d.cursorCol++
+	default:
+		cursorChanged = false
+	}
+
+	switch ev.Key {
+	case termbox.KeyArrowRight:
+		d.scrollCol++
+	case termbox.KeyArrowLeft:
+		d.scrollCol--
 	}
 
 	// Clamp cursor
@@ -203,25 +238,34 @@ func (d *Detailview) HandleEvent(ev escapebox.Event) {
 	d.cursorCol = min(len(d.Columns) - 1, d.cursorCol)
 
 	// Clamp scroll
-	if d.cursorRow < d.scrollRow {
-		d.scrollRow = d.cursorRow
-	}
+	d.scrollCol = max(d.scrollCol, 0)
+	d.scrollRow = max(d.scrollRow, 0)
 
-	if d.cursorRow >= d.lastVisibleRow() {
-		d.scrollRow = d.cursorRow - d.viewHeight() + 1
-	}
+	d.scrollCol = min(d.scrollCol, d.totalWidth() - d.viewWidth())
+	d.scrollRow = min(d.scrollRow, len(d.Rows) - 1)
 
-	if d.columnLeft(d.cursorCol) < d.scrollCol {
-		d.scrollCol = d.columnLeft(d.cursorCol)
-	}
+	if cursorChanged {
+		if d.cursorRow < d.scrollRow {
+			d.scrollRow = d.cursorRow
+		}
 
-	if d.columnLeft(d.cursorCol) >= d.scrollColEnd() {
-		d.scrollCol = d.columnLeft(d.cursorCol) // - d.viewWidth() + 1
-	}
+		if d.cursorRow >= d.lastVisibleRow() {
+			d.scrollRow = d.cursorRow - d.viewHeight() + 1
+		}
 
-	if d.columnRight(d.cursorCol) > d.scrollColEnd() {
-		d.scrollCol = min(
-			d.columnLeft(d.cursorCol),
-			d.columnRight(d.cursorCol) - d.scrollColEnd())
+		if d.columnLeft(d.cursorCol) < d.scrollCol {
+			d.scrollCol = d.columnLeft(d.cursorCol)
+		}
+
+		if d.columnLeft(d.cursorCol) >= d.scrollColEnd() {
+			// - d.viewWidth() + 1
+			d.scrollCol = d.columnLeft(d.cursorCol)
+		}
+
+		if d.columnRight(d.cursorCol) > d.scrollColEnd() {
+			d.scrollCol = min(
+				d.columnLeft(d.cursorCol),
+				d.columnRight(d.cursorCol) - d.scrollColEnd())
+		}
 	}
 }
