@@ -4,9 +4,14 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+type ResizeEvent func()
+
 type Container struct {
-	Controls []Control
-	Focused  Focusable
+	Controls      []Control
+	Focused       Focusable
+	ResizeHandler ResizeEvent
+	Width         int
+	Height        int
 }
 
 func (c *Container) focus(f Focusable) {
@@ -82,7 +87,7 @@ func (c *Container) FocusPrevious() {
 	}
 }
 
-func refresh(c Container) {
+func refresh(c *Container) {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
 	for _, v := range c.Controls {

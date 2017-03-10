@@ -262,7 +262,8 @@ func (d *DetailView) HandleEvent(ev escapebox.Event) {
 	d.scrollCol = max(d.scrollCol, 0)
 	d.scrollRow = max(d.scrollRow, 0)
 
-	d.scrollCol = min(d.scrollCol, d.totalWidth() - d.viewWidth())
+	maxScrollCol := max(0, d.totalWidth() - d.viewWidth())
+	d.scrollCol = min(d.scrollCol, maxScrollCol)
 	d.scrollRow = min(d.scrollRow, len(d.Rows) - 1)
 
 	if cursorChanged {

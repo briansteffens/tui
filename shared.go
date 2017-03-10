@@ -132,8 +132,14 @@ func Close() {
 	outFile.Close()
 }
 
-func MainLoop(c Container) {
+func MainLoop(c *Container) {
 	c.FocusNext()
+
+	c.Width, c.Height = termbox.Size()
+	if c.ResizeHandler != nil {
+		c.ResizeHandler()
+	}
+
 	refresh(c)
 
 	loop: for {
@@ -144,6 +150,13 @@ func MainLoop(c Container) {
 		switch ev.Seq {
 		case escapebox.SeqNone:
 			switch ev.Type {
+			case termbox.EventResize:
+				c.Width = ev.Width
+				c.Height = ev.Height
+
+				if c.ResizeHandler != nil {
+					c.ResizeHandler()
+				}
 			case termbox.EventKey:
 				switch ev.Key {
 				case termbox.KeyCtrlC:
