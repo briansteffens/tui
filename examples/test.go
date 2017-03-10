@@ -54,7 +54,7 @@ func main() {
 	}
 
 	dv := tui.DetailView {
-		Bounds: tui.Rect { Left: 2, Top: 16, Width: 35, Height: 8 },
+		Bounds: tui.Rect { Left: 2, Top: 16, Width: 25, Height: 3 },
 		Columns: []tui.Column {
 			tui.Column { Name: "ID", Width: 3 },
 			tui.Column { Name: "Name", Width: 5 },

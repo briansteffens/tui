@@ -1,8 +1,8 @@
 package tui
 
 type Label struct {
-	Bounds Rect
-	Text   string
+	Bounds     Rect
+	Text       string
 }
 
 func (l *Label) Render() {

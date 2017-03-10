@@ -7,11 +7,11 @@ import (
 )
 
 type TextBox struct {
-	Bounds Rect
-	Value  string
-	cursor int
-	scroll int
-	focus  bool
+	Bounds     Rect
+	Value      string
+	cursor     int
+	scroll     int
+	focus      bool
 }
 
 func (t *TextBox) maxVisibleChars() int {
@@ -27,7 +27,6 @@ func (t *TextBox) lastVisible() int {
 }
 
 func (t *TextBox) Render() {
-	RenderBorder(t.Bounds)
 	termPrintf(t.Bounds.Left + 1, t.Bounds.Top + 1,
 		   t.Value[t.scroll:t.lastVisible() + 1])
 

@@ -56,26 +56,6 @@ func termPrintColorf(x, y int, fg, bg termbox.Attribute, format string,
 	}
 }
 
-func RenderBorder(r Rect) {
-	// Corners
-	setCell(r.Left, r.Top, '┌')
-	setCell(r.Right(), r.Top, '┓')
-	setCell(r.Left, r.Bottom(), '└')
-	setCell(r.Right(), r.Bottom(), '┘')
-
-	// Horizontal borders
-	for x := r.Left + 1; x < r.Right(); x++ {
-		setCell(x, r.Top, '-')
-		setCell(x, r.Bottom(), '-')
-	}
-
-	// Vertical borders
-	for y := r.Top + 1; y < r.Bottom(); y++ {
-		setCell(r.Left, y, '┃')
-		setCell(r.Right(), y, '┃')
-	}
-}
-
 type Rect struct {
 	Left, Top, Width, Height int
 }
@@ -87,6 +67,8 @@ func (r *Rect) Right() int {
 func (r *Rect) Bottom() int {
 	return r.Top + r.Height - 1
 }
+
+type BorderRenderer func(c Control)
 
 type Control interface {
 	Render()

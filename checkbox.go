@@ -7,10 +7,10 @@ import (
 )
 
 type CheckBox struct {
-	Bounds  Rect
-	Text    string
-	Checked bool
-	focus   bool
+	Bounds     Rect
+	Text       string
+	Checked    bool
+	focus      bool
 }
 
 func (c *CheckBox) Render() {

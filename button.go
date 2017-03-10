@@ -15,8 +15,6 @@ type Button struct {
 }
 
 func (b *Button) Render() {
-	RenderBorder(b.Bounds)
-
 	count := min(len(b.Text), b.Bounds.Width - 4)
 	termPrintf(b.Bounds.Left + 2, b.Bounds.Top + 1, b.Text[0:count])
 

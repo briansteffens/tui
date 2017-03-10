@@ -38,11 +38,11 @@ func renderValue(src string, maxWidth int) string {
 }
 
 func (d *DetailView) viewHeight() int {
-	return d.Bounds.Height - 3 // 2 borders and column line
+	return d.Bounds.Height - 1 // Header row
 }
 
 func (d *DetailView) viewWidth() int {
-	return d.Bounds.Width - 2 // 2 borders
+	return d.Bounds.Width
 }
 
 func (d *DetailView) lastVisibleRow() int {
@@ -118,10 +118,8 @@ func (d *DetailView) totalWidth() int {
 }
 
 func (d *DetailView) Render() {
-	RenderBorder(d.Bounds)
-
-	top := d.Bounds.Top + 1
-	left := d.Bounds.Left + 1
+	top := d.Bounds.Top
+	left := d.Bounds.Left
 
 	firstCol, firstOffset := d.firstVisibleCol()
 	lastCol, lastOffset := d.lastVisibleCol()
@@ -159,7 +157,7 @@ func (d *DetailView) Render() {
 	}
 
 	for r := d.scrollRow; r < d.lastVisibleRow(); r++ {
-		left = d.Bounds.Left + 1
+		left = d.Bounds.Left
 		top++
 
 		rowColor := d.RowBg

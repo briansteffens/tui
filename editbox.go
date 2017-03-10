@@ -21,8 +21,8 @@ type EditBox struct {
 }
 
 func (e *EditBox) Render() {
-	textWidth := e.Bounds.Width - 2
-	textHeight := e.Bounds.Height - 3
+	textWidth := e.Bounds.Width
+	textHeight := e.Bounds.Height - 1 // Bottom line free for modes/notices
 
 	// Generate virtual lines and map the cursor to them.
 	virtualLines := make([]string, 0)
@@ -57,19 +57,17 @@ func (e *EditBox) Render() {
 	scrollEnd := min(len(virtualLines), e.scroll + textHeight)
 
 	for i := e.scroll; i < scrollEnd; i++ {
-		termPrintf(e.Bounds.Left + 1, e.Bounds.Top + 1 + i - e.scroll,
+		termPrintf(e.Bounds.Left, e.Bounds.Top + i - e.scroll,
 			   virtualLines[i])
 	}
 
-	RenderBorder(e.Bounds)
-
 	if e.focus {
-		termbox.SetCursor(e.Bounds.Left + 1 + cursorCol,
-				  e.Bounds.Top  + 1 + cursorRow - e.scroll)
+		termbox.SetCursor(e.Bounds.Left + cursorCol,
+				  e.Bounds.Top + cursorRow - e.scroll)
 	}
 
 	if e.mode == InsertMode {
-		termPrintf(e.Bounds.Left + 1, e.Bounds.Bottom() - 1,
+		termPrintf(e.Bounds.Left, e.Bounds.Bottom(),
 			   "-- INSERT --")
 	}
 }
