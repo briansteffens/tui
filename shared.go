@@ -83,7 +83,7 @@ type Focusable interface {
 
 var outFile *os.File
 
-func log(format string, args ...interface{}) {
+func Log(format string, args ...interface{}) {
 	outFile.WriteString(fmt.Sprintf(format + "\n", args...))
 }
 
@@ -122,7 +122,7 @@ func MainLoop(c *Container) {
 		c.ResizeHandler()
 	}
 
-	refresh(c)
+	c.Refresh()
 
 	loop: for {
 		ev := escapebox.PollEvent()
@@ -157,7 +157,7 @@ func MainLoop(c *Container) {
 			c.Focused.HandleEvent(ev)
 		}
 
-		refresh(c)
+		c.Refresh()
 	}
 }
 

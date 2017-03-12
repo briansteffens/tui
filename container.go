@@ -87,7 +87,7 @@ func (c *Container) FocusPrevious() {
 	}
 }
 
-func refresh(c *Container) {
+func (c *Container) Refresh() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
 	for _, v := range c.Controls {
