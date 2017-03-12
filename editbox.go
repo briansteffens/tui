@@ -152,7 +152,7 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 		e.mode = CommandMode
 		e.cursorChar--
 		return
-	} else if renderableChar(ev.Key) {
+	} else if renderableChar(ev) {
 		e.Lines[e.cursorLine] = pre + string(ev.Ch) + post
 		e.cursorChar++
 		return
@@ -215,5 +215,8 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 
 		e.cursorLine++
 		e.cursorChar = 0
+	case termbox.KeySpace:
+		e.Lines[e.cursorLine] = pre + " " + post
+		e.cursorChar++
 	}
 }

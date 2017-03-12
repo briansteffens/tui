@@ -71,7 +71,7 @@ func (t *TextBox) HandleEvent(ev escapebox.Event) {
 		case termbox.KeyEnd:
 			t.cursor = len(t.Value)
 		default:
-			if renderableChar(ev.Key) {
+			if renderableChar(ev) {
 				t.Value = pre + char + post
 				t.cursor++
 			}

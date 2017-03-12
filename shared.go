@@ -26,17 +26,8 @@ const (
 	SeqShiftTab = 1
 )
 
-func renderableChar(k termbox.Key) bool {
-	return k != termbox.KeyEnter      &&
-	       k != termbox.KeyPgup       &&
-	       k != termbox.KeyPgdn       &&
-	       k != termbox.KeyInsert     &&
-	       k != termbox.KeyArrowUp    &&
-	       k != termbox.KeyArrowDown  &&
-	       k != termbox.KeyArrowLeft  &&
-	       k != termbox.KeyArrowRight &&
-	       k != termbox.KeyBackspace  &&
-	       k != termbox.KeyBackspace2
+func renderableChar(ev escapebox.Event) bool {
+	return ev.Type == termbox.EventKey && ev.Key == 0 && ev.Ch != 0
 }
 
 func setCell(x, y int, r rune) {
