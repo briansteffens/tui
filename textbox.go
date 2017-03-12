@@ -1,7 +1,7 @@
 package tui
 
 import (
-	"fmt"
+	//"fmt"
 	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
 )
@@ -27,8 +27,8 @@ func (t *TextBox) lastVisible() int {
 }
 
 func (t *TextBox) Render() {
-	termPrintf(t.Bounds.Left + 1, t.Bounds.Top + 1,
-		   t.Value[t.scroll:t.lastVisible() + 1])
+	termPrint(t.Bounds.Left + 1, t.Bounds.Top + 1,
+		  t.Value[t.scroll:t.lastVisible() + 1])
 
 	if t.focus {
 		termbox.SetCursor(t.Bounds.Left + 1 + t.cursor - t.scroll,
@@ -50,7 +50,7 @@ func (t *TextBox) HandleEvent(ev escapebox.Event) {
 
 	switch ev.Type {
 	case termbox.EventKey:
-		char := fmt.Sprintf("%c", ev.Ch)
+		char := string(ev.Ch)
 
 		switch ev.Key {
 		case termbox.KeyBackspace, termbox.KeyBackspace2:

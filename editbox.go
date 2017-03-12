@@ -71,8 +71,8 @@ func (e *EditBox) Render() {
 	scrollEnd := min(len(virtualLines), e.scroll + textHeight)
 
 	for i := e.scroll; i < scrollEnd; i++ {
-		termPrintf(e.Bounds.Left, e.Bounds.Top + i - e.scroll,
-			   virtualLines[i])
+		termPrint(e.Bounds.Left, e.Bounds.Top + i - e.scroll,
+			  virtualLines[i])
 	}
 
 	if e.focus {
@@ -81,8 +81,8 @@ func (e *EditBox) Render() {
 	}
 
 	if e.mode == InsertMode {
-		termPrintf(e.Bounds.Left, e.Bounds.Bottom(),
-			   "-- INSERT --")
+		termPrint(e.Bounds.Left, e.Bounds.Bottom(),
+			  "-- INSERT --")
 	}
 }
 
