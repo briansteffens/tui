@@ -20,6 +20,20 @@ type EditBox struct {
 	mode       int
 }
 
+func (e *EditBox) GetText() string {
+	ret := ""
+
+	for i, line := range e.Lines {
+		if i > 0 {
+			ret += "\n"
+		}
+
+		ret += line
+	}
+
+	return ret
+}
+
 func (e *EditBox) Render() {
 	textWidth := e.Bounds.Width
 	textHeight := e.Bounds.Height - 1 // Bottom line free for modes/notices
