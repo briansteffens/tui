@@ -24,7 +24,7 @@ func main() {
 		      "Guess what\n" +
 		      "They keep going!\n" +
 		      "Again! Another wrapping line gogogo\n" +
-		      "Ok one more\n")
+		      "Ok one more")
 
 	l := tui.Label {
 		Bounds: tui.Rect { Left: 2, Top: 1, Width: 20, Height: 1 },

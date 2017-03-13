@@ -53,19 +53,20 @@ func (e *EditBox) SetText(raw string) {
 	for i, c := range raw {
 		isEnd := i == len(raw) - 1
 
+		if c != '\n' {
+			char := Char {
+				Char: c,
+				Fg: termbox.ColorWhite,
+				Bg: termbox.ColorBlack,
+			}
+
+			line = append(line, char)
+		}
+
 		if c == '\n' || isEnd {
 			e.Lines = append(e.Lines, line)
 			line = []Char{}
-			continue
 		}
-
-		char := Char {
-			Char: c,
-			Fg: termbox.ColorWhite,
-			Bg: termbox.ColorBlack,
-		}
-
-		line = append(line, char)
 	}
 
 	if e.OnTextChanged != nil {
