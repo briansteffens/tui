@@ -16,14 +16,17 @@ type Char struct {
 	Bg   termbox.Attribute
 }
 
+type TextChangedEvent func(*EditBox)
+
 type EditBox struct {
-	Bounds     Rect
-	Lines      [][]Char
-	cursorLine int
-	cursorChar int
-	scroll     int
-	focus      bool
-	mode       int
+	Bounds        Rect
+	Lines         [][]Char
+	OnTextChanged TextChangedEvent
+	cursorLine    int
+	cursorChar    int
+	scroll        int
+	focus         bool
+	mode          int
 }
 
 func (e *EditBox) GetText() string {
@@ -63,6 +66,10 @@ func (e *EditBox) SetText(raw string) {
 		}
 
 		line = append(line, char)
+	}
+
+	if e.OnTextChanged != nil {
+		e.OnTextChanged(e)
 	}
 }
 
@@ -200,6 +207,11 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 		e.Lines[e.cursorLine] = newLine
 
 		e.cursorChar++
+
+		if e.OnTextChanged != nil {
+			e.OnTextChanged(e)
+		}
+
 		return
 	}
 
@@ -238,6 +250,10 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 			e.Lines[e.cursorLine] = append(e.Lines[e.cursorLine],
 						       post...)
 		}
+
+		if e.OnTextChanged != nil {
+			e.OnTextChanged(e)
+		}
 	case termbox.KeyEnter:
 		newLines := make([][]Char, len(e.Lines) + 1)
 		j := 0
@@ -262,6 +278,10 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 
 		e.cursorLine++
 		e.cursorChar = 0
+
+		if e.OnTextChanged != nil {
+			e.OnTextChanged(e)
+		}
 	case termbox.KeySpace:
 		char := Char {
 			Char: ' ',
@@ -271,5 +291,9 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 		e.Lines[e.cursorLine] = append(pre, char)
 		e.Lines[e.cursorLine] = append(e.Lines[e.cursorLine], post...)
 		e.cursorChar++
+
+		if e.OnTextChanged != nil {
+			e.OnTextChanged(e)
+		}
 	}
 }
