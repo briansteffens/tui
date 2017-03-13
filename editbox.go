@@ -10,9 +10,15 @@ const (
 	InsertMode  = 1
 )
 
+type Char struct {
+	Char rune
+	Fg   termbox.Attribute
+	Bg   termbox.Attribute
+}
+
 type EditBox struct {
 	Bounds     Rect
-	Lines      []string
+	Lines      [][]Char
 	cursorLine int
 	cursorChar int
 	scroll     int
@@ -28,10 +34,36 @@ func (e *EditBox) GetText() string {
 			ret += "\n"
 		}
 
-		ret += line
+		for _, char := range line {
+			ret += string(char.Char)
+		}
 	}
 
 	return ret
+}
+
+func (e *EditBox) SetText(raw string) {
+	e.Lines = [][]Char{}
+
+	line := []Char{}
+
+	for i, c := range raw {
+		isEnd := i == len(raw) - 1
+
+		if c == '\n' || isEnd {
+			e.Lines = append(e.Lines, line)
+			line = []Char{}
+			continue
+		}
+
+		char := Char {
+			Char: c,
+			Fg: termbox.ColorWhite,
+			Bg: termbox.ColorBlack,
+		}
+
+		line = append(line, char)
+	}
 }
 
 func (e *EditBox) Render() {
@@ -39,7 +71,7 @@ func (e *EditBox) Render() {
 	textHeight := e.Bounds.Height - 1 // Bottom line free for modes/notices
 
 	// Generate virtual lines and map the cursor to them.
-	virtualLines := make([]string, 0)
+	virtualLines := make([][]Char, 0)
 
 	cursorRow := 0
 	cursorCol := 0
@@ -70,9 +102,12 @@ func (e *EditBox) Render() {
 
 	scrollEnd := min(len(virtualLines), e.scroll + textHeight)
 
-	for i := e.scroll; i < scrollEnd; i++ {
-		termPrint(e.Bounds.Left, e.Bounds.Top + i - e.scroll,
-			  virtualLines[i])
+	for l := e.scroll; l < scrollEnd; l++ {
+		for c, ch := range virtualLines[l] {
+			termbox.SetCell(e.Bounds.Left + c,
+					e.Bounds.Top + l - e.scroll, ch.Char,
+					ch.Fg, ch.Bg)
+		}
 	}
 
 	if e.focus {
@@ -153,7 +188,17 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 		e.cursorChar--
 		return
 	} else if renderableChar(ev) {
-		e.Lines[e.cursorLine] = pre + string(ev.Ch) + post
+		char := Char {
+			Char: ev.Ch,
+			Fg: termbox.ColorWhite,
+			Bg: termbox.ColorBlack,
+		}
+
+		newLine := append(pre, char)
+		newLine = append(newLine, post...)
+
+		e.Lines[e.cursorLine] = newLine
+
 		e.cursorChar++
 		return
 	}
@@ -169,10 +214,11 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 		e.cursorLine++
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		if len(pre) > 0 {
-			e.Lines[e.cursorLine] = pre[0:len(pre) - 1] + post
+			e.Lines[e.cursorLine] = append(pre[0:len(pre) - 1],
+						       post...)
 			e.cursorChar--
 		} else if e.cursorLine > 0 {
-			newLines := make([]string, len(e.Lines) - 1)
+			newLines := make([][]Char, len(e.Lines) - 1)
 			j := 0
 
 			for i := 0; i < len(preLines); i++ {
@@ -189,10 +235,11 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 
 			e.cursorLine--
 			e.cursorChar = len(e.Lines[e.cursorLine])
-			e.Lines[e.cursorLine] += post
+			e.Lines[e.cursorLine] = append(e.Lines[e.cursorLine],
+						       post...)
 		}
 	case termbox.KeyEnter:
-		newLines := make([]string, len(e.Lines) + 1)
+		newLines := make([][]Char, len(e.Lines) + 1)
 		j := 0
 
 		for i := 0; i < len(preLines); i++ {
@@ -216,7 +263,13 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 		e.cursorLine++
 		e.cursorChar = 0
 	case termbox.KeySpace:
-		e.Lines[e.cursorLine] = pre + " " + post
+		char := Char {
+			Char: ' ',
+			Fg: termbox.ColorWhite,
+			Bg: termbox.ColorBlack,
+		}
+		e.Lines[e.cursorLine] = append(pre, char)
+		e.Lines[e.cursorLine] = append(e.Lines[e.cursorLine], post...)
 		e.cursorChar++
 	}
 }
