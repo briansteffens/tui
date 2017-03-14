@@ -29,6 +29,16 @@ type EditBox struct {
 	mode          int
 }
 
+func (e *EditBox) GetCursor() int {
+	ret := 0
+
+	for l := 0; l < e.cursorLine; l++ {
+		ret += len(e.Lines[l])
+	}
+
+	return ret + e.cursorChar
+}
+
 func (e *EditBox) GetText() string {
 	ret := ""
 
