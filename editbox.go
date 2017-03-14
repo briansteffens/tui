@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
 )
@@ -39,6 +40,19 @@ func (e *EditBox) GetCursor() int {
 	}
 
 	return ret + e.cursorChar
+}
+
+func (e *EditBox) GetChar(index int) (*Char, error) {
+	for l := 0; l < len(e.Lines); l++ {
+		if len(e.Lines[l]) <= index {
+			index -= len(e.Lines[l])
+			continue
+		}
+
+		return &(e.Lines[l][index]), nil
+	}
+
+	return nil, errors.New("Index out of range")
 }
 
 func (e *EditBox) GetText() string {
