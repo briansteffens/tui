@@ -17,11 +17,13 @@ type Char struct {
 }
 
 type TextChangedEvent func(*EditBox)
+type CursorMovedEvent func(*EditBox)
 
 type EditBox struct {
 	Bounds        Rect
 	Lines         [][]Char
 	OnTextChanged TextChangedEvent
+	OnCursorMoved CursorMovedEvent
 	cursorLine    int
 	cursorChar    int
 	scroll        int
@@ -152,6 +154,9 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) {
 		return
 	}
 
+	oldCursorLine := e.cursorLine
+	oldCursorChar := e.cursorChar
+
 	if e.mode == CommandMode {
 		e.handleCommandModeEvent(ev)
 	} else if e.mode == InsertMode {
@@ -170,6 +175,12 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) {
 	}
 
 	e.cursorChar = min(minChar, e.cursorChar)
+
+	// Detect and fire OnCursorMoved
+	if e.OnCursorMoved != nil &&
+	   (oldCursorLine != e.cursorLine || oldCursorChar != e.cursorChar) {
+		e.OnCursorMoved(e)
+	}
 }
 
 func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) {
