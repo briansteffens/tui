@@ -196,14 +196,25 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 		e.cursorChar--
 		return
 	} else if renderableChar(ev) {
-		char := Char {
+		newLine := make([]Char, len(pre) + len(post) + 1)
+
+		j := 0
+		for i := 0; i < len(pre); i++ {
+			newLine[j] = pre[i]
+			j++
+		}
+
+		newLine[j] = Char {
 			Char: ev.Ch,
 			Fg: termbox.ColorWhite,
 			Bg: termbox.ColorBlack,
 		}
+		j++
 
-		newLine := append(pre, char)
-		newLine = append(newLine, post...)
+		for i := 0; i < len(post); i++ {
+			newLine[j] = post[i]
+			j++
+		}
 
 		e.Lines[e.cursorLine] = newLine
 
