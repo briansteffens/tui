@@ -87,7 +87,11 @@ func matchBinding(ev escapebox.Event, kb KeyBinding) bool {
 		return ev.Ch == kb.Ch
 	}
 
-	return ev.Key == kb.Key
+	if ev.Key != 0 {
+		return ev.Key == kb.Key
+	}
+
+	return false
 }
 
 type Control interface {
@@ -178,7 +182,10 @@ func MainLoop(c *Container) {
 			handled = true
 		}
 
+		if !handled && c.HandleEvent != nil {
+			handled = c.HandleEvent(c, ev)
+		}
+
 		c.Refresh()
 	}
 }
-

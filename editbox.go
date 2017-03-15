@@ -262,6 +262,10 @@ func insertChar(pre []Char, insert rune, post []Char) []Char {
 }
 
 func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
+	if ev.Key == termbox.KeyTab {
+		Log("TAB HERE")
+	}
+
 	line := e.Lines[e.cursorLine]
 
 	pre  := line[0:e.cursorChar]
@@ -368,6 +372,8 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 			e.OnTextChanged(e)
 		}
 
+		return true
+	case termbox.KeyTab:
 		return true
 	}
 
