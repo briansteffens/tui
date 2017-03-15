@@ -67,6 +67,29 @@ func (r *Rect) Bottom() int {
 
 type BorderRenderer func(c Control)
 
+type KeyBinding struct {
+	Seq escapebox.Sequence
+	Key termbox.Key
+	Ch  rune
+}
+
+// Check if a KeyBinding matches an event
+func matchBinding(ev escapebox.Event, kb KeyBinding) bool {
+	if ev.Type != termbox.EventKey {
+		return false
+	}
+
+	if kb.Seq != 0 {
+		return ev.Seq == kb.Seq
+	}
+
+	if kb.Ch != 0 {
+		return ev.Ch == kb.Ch
+	}
+
+	return ev.Key == kb.Key
+}
+
 type Control interface {
 	Render()
 }
@@ -124,33 +147,22 @@ func MainLoop(c *Container) {
 	loop: for {
 		ev := escapebox.PollEvent()
 
-		handled := false
-
-		switch ev.Seq {
-		case escapebox.SeqNone:
-			switch ev.Type {
-			case termbox.EventResize:
-				c.Width = ev.Width
-				c.Height = ev.Height
-
-				if c.ResizeHandler != nil {
-					c.ResizeHandler()
-				}
-			case termbox.EventKey:
-				switch ev.Key {
-				case termbox.KeyCtrlC:
-					break loop
-				case termbox.KeyTab:
-					c.FocusNext()
-					handled = true
-				}
-			}
-		case SeqShiftTab:
-			c.FocusPrevious()
-			handled = true
+		if matchBinding(ev, c.KeyBindingExit) {
+			break loop
 		}
 
-		if !handled && c.Focused != nil {
+		if ev.Type == termbox.EventResize {
+			c.Width = ev.Width
+			c.Height = ev.Height
+
+			if c.ResizeHandler != nil {
+				c.ResizeHandler()
+			}
+		} else if matchBinding(ev, c.KeyBindingFocusNext) {
+			c.FocusNext()
+		} else if matchBinding(ev, c.KeyBindingFocusPrevious) {
+			c.FocusPrevious()
+		} else if c.Focused != nil {
 			c.Focused.HandleEvent(ev)
 		}
 

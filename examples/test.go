@@ -73,6 +73,11 @@ func main() {
 	c := tui.Container {
 		Controls: []tui.Control {&t, &dv, &edit1, &l, &t2, &checkbox1,
 					 &button1},
+		KeyBindingExit: tui.KeyBinding { Key: termbox.KeyCtrlC },
+		KeyBindingFocusNext: tui.KeyBinding { Key: termbox.KeyTab },
+		KeyBindingFocusPrevious: tui.KeyBinding {
+			Seq: tui.SeqShiftTab,
+		},
 	}
 
 	tui.MainLoop(&c)

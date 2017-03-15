@@ -7,11 +7,14 @@ import (
 type ResizeEvent func()
 
 type Container struct {
-	Controls      []Control
-	Focused       Focusable
-	ResizeHandler ResizeEvent
-	Width         int
-	Height        int
+	Controls                []Control
+	Focused                 Focusable
+	ResizeHandler           ResizeEvent
+	Width                   int
+	Height                  int
+    KeyBindingFocusNext     KeyBinding
+    KeyBindingFocusPrevious KeyBinding
+    KeyBindingExit          KeyBinding
 }
 
 func (c *Container) focus(f Focusable) {
