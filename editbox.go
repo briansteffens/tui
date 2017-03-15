@@ -36,7 +36,7 @@ func (e *EditBox) GetCursor() int {
 	ret := 0
 
 	for l := 0; l < e.cursorLine; l++ {
-		ret += len(e.Lines[l])
+		ret += len(e.Lines[l]) + 1
 	}
 
 	return ret + e.cursorChar
