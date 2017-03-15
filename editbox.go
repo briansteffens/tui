@@ -44,9 +44,16 @@ func (e *EditBox) GetCursor() int {
 
 func (e *EditBox) GetChar(index int) (*Char, error) {
 	for l := 0; l < len(e.Lines); l++ {
-		if len(e.Lines[l]) <= index {
-			index -= len(e.Lines[l])
+		lineWidth := len(e.Lines[l]) + 1
+
+		if index >= lineWidth {
+			index -= lineWidth
 			continue
+		}
+
+		// Implicit newline
+		if index == lineWidth - 1 {
+			return &Char { Char: '\n' }, nil
 		}
 
 		return &(e.Lines[l][index]), nil
