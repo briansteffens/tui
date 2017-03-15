@@ -224,6 +224,30 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) {
 	}
 }
 
+func insertChar(pre []Char, insert rune, post []Char) []Char {
+	newLine := make([]Char, len(pre) + 1 + len(post))
+
+	j := 0
+	for i := 0; i < len(pre); i++ {
+		newLine[j] = pre[i]
+		j++
+	}
+
+	newLine[j] = Char {
+		Char: insert,
+		Fg: termbox.ColorWhite,
+		Bg: termbox.ColorBlack,
+	}
+	j++
+
+	for i := 0; i < len(post); i++ {
+		newLine[j] = post[i]
+		j++
+	}
+
+	return newLine
+}
+
 func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 	line := e.Lines[e.cursorLine]
 
@@ -238,28 +262,7 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 		e.cursorChar--
 		return
 	} else if renderableChar(ev) {
-		newLine := make([]Char, len(pre) + len(post) + 1)
-
-		j := 0
-		for i := 0; i < len(pre); i++ {
-			newLine[j] = pre[i]
-			j++
-		}
-
-		newLine[j] = Char {
-			Char: ev.Ch,
-			Fg: termbox.ColorWhite,
-			Bg: termbox.ColorBlack,
-		}
-		j++
-
-		for i := 0; i < len(post); i++ {
-			newLine[j] = post[i]
-			j++
-		}
-
-		e.Lines[e.cursorLine] = newLine
-
+		e.Lines[e.cursorLine] = insertChar(pre, ev.Ch, post)
 		e.cursorChar++
 
 		if e.OnTextChanged != nil {
@@ -337,13 +340,7 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 			e.OnTextChanged(e)
 		}
 	case termbox.KeySpace:
-		char := Char {
-			Char: ' ',
-			Fg: termbox.ColorWhite,
-			Bg: termbox.ColorBlack,
-		}
-		e.Lines[e.cursorLine] = append(pre, char)
-		e.Lines[e.cursorLine] = append(e.Lines[e.cursorLine], post...)
+		e.Lines[e.cursorLine] = insertChar(pre, ' ', post)
 		e.cursorChar++
 
 		if e.OnTextChanged != nil {
