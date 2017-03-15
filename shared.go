@@ -98,7 +98,7 @@ type Focusable interface {
 	Control
 	SetFocus()
 	UnsetFocus()
-	HandleEvent(escapebox.Event)
+	HandleEvent(escapebox.Event) bool
 }
 
 var outFile *os.File
@@ -151,6 +151,8 @@ func MainLoop(c *Container) {
 			break loop
 		}
 
+		handled := false
+
 		if ev.Type == termbox.EventResize {
 			c.Width = ev.Width
 			c.Height = ev.Height
@@ -158,12 +160,22 @@ func MainLoop(c *Container) {
 			if c.ResizeHandler != nil {
 				c.ResizeHandler()
 			}
-		} else if matchBinding(ev, c.KeyBindingFocusNext) {
+
+			handled = true
+		}
+
+		if !handled && c.Focused != nil {
+			handled = c.Focused.HandleEvent(ev)
+		}
+
+		if !handled && matchBinding(ev, c.KeyBindingFocusNext) {
 			c.FocusNext()
-		} else if matchBinding(ev, c.KeyBindingFocusPrevious) {
+			handled = true
+		}
+
+		if !handled && matchBinding(ev, c.KeyBindingFocusPrevious) {
 			c.FocusPrevious()
-		} else if c.Focused != nil {
-			c.Focused.HandleEvent(ev)
+			handled = true
 		}
 
 		c.Refresh()

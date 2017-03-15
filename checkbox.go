@@ -38,12 +38,15 @@ func (c *CheckBox) UnsetFocus() {
 	c.focus = false
 }
 
-func (c *CheckBox) HandleEvent(ev escapebox.Event) {
+func (c *CheckBox) HandleEvent(ev escapebox.Event) bool {
 	switch ev.Type {
 	case termbox.EventKey:
 		switch ev.Key {
 		case termbox.KeySpace:
 			c.Checked = !c.Checked
+			return true
 		}
 	}
+
+	return false
 }

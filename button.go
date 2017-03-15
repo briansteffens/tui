@@ -31,7 +31,7 @@ func (b *Button) UnsetFocus() {
 	b.focus = false
 }
 
-func (b *Button) HandleEvent(ev escapebox.Event) {
+func (b *Button) HandleEvent(ev escapebox.Event) bool {
 	switch ev.Type {
 	case termbox.EventKey:
 		switch ev.Key {
@@ -39,6 +39,9 @@ func (b *Button) HandleEvent(ev escapebox.Event) {
 			if b.ClickHandler != nil {
 				b.ClickHandler(b)
 			}
+			return true
 		}
 	}
+
+	return false
 }

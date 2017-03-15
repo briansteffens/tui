@@ -236,35 +236,45 @@ func (d *DetailView) Render() {
 	}
 }
 
-func (d *DetailView) HandleEvent(ev escapebox.Event) {
+func (d *DetailView) HandleEvent(ev escapebox.Event) bool {
 	if ev.Type != termbox.EventKey {
-		return
+		return false
 	}
 
 	oldCursorRow := d.cursorRow
 	oldCursorCol := d.cursorCol
 
+	handled := false
+
 	switch ev.Ch {
 	case 'k':
 		d.cursorRow--
+		handled = true
 	case 'j':
 		d.cursorRow++
+		handled = true
 	case 'h':
 		d.cursorCol--
+		handled = true
 	case 'l':
 		d.cursorCol++
+		handled = true
 	}
 
 	switch ev.Key {
 	case termbox.KeyArrowRight:
 		d.scrollCol++
+		handled = true
 	case termbox.KeyArrowLeft:
 		d.scrollCol--
+		handled = true
 	}
 
 	if oldCursorRow != d.cursorRow || oldCursorCol != d.cursorCol {
 		d.updateScroll()
 	}
+
+	return handled
 }
 
 func (d *DetailView) updateScroll() {

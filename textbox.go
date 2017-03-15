@@ -44,9 +44,11 @@ func (t *TextBox) UnsetFocus() {
 	t.focus = false
 }
 
-func (t *TextBox) HandleEvent(ev escapebox.Event) {
+func (t *TextBox) HandleEvent(ev escapebox.Event) bool {
 	pre := t.Value[0:t.cursor]
 	post := t.Value[t.cursor:len(t.Value)]
+
+	handled := false
 
 	switch ev.Type {
 	case termbox.EventKey:
@@ -58,18 +60,24 @@ func (t *TextBox) HandleEvent(ev escapebox.Event) {
 				t.Value = pre[0:len(pre)-1] + post
 				t.cursor--
 			}
+			handled = true
 		case termbox.KeyDelete:
 			if len(post) > 0 {
 				t.Value = pre + post[1:len(post)]
 			}
+			handled = true
 		case termbox.KeyArrowLeft:
 			t.cursor--
+			handled = true
 		case termbox.KeyArrowRight:
 			t.cursor++
+			handled = true
 		case termbox.KeyHome:
 			t.cursor = 0
+			handled = true
 		case termbox.KeyEnd:
 			t.cursor = len(t.Value)
+			handled = true
 		default:
 			if renderableChar(ev) {
 				t.Value = pre + char + post
@@ -93,5 +101,7 @@ func (t *TextBox) HandleEvent(ev escapebox.Event) {
 	if t.cursor >= t.scroll + t.maxVisibleChars() {
 		t.scroll = t.cursor - t.maxVisibleChars() + 1
 	}
+
+	return handled
 }
 

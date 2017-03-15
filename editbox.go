@@ -170,18 +170,20 @@ func (e *EditBox) UnsetFocus() {
 	e.focus = false
 }
 
-func (e *EditBox) HandleEvent(ev escapebox.Event) {
+func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 	if ev.Type != termbox.EventKey {
-		return
+		return false
 	}
 
 	oldCursorLine := e.cursorLine
 	oldCursorChar := e.cursorChar
 
+	handled := false
+
 	if e.mode == CommandMode {
-		e.handleCommandModeEvent(ev)
+		handled = e.handleCommandModeEvent(ev)
 	} else if e.mode == InsertMode {
-		e.handleInsertModeEvent(ev)
+		handled = e.handleInsertModeEvent(ev)
 	}
 
 	// Clamp the cursor to its constraints
@@ -202,26 +204,37 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) {
 	   (oldCursorLine != e.cursorLine || oldCursorChar != e.cursorChar) {
 		e.OnCursorMoved(e)
 	}
+
+	return handled
 }
 
-func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) {
+func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 	switch ev.Ch {
 	case 'h':
 		e.cursorChar--
+		return true
 	case 'l':
 		e.cursorChar++
+		return true
 	case 'k':
 		e.cursorLine--
+		return true
 	case 'j':
 		e.cursorLine++
+		return true
 	case '0':
 		e.cursorChar = 0
+		return true
 	case 'i':
 		e.mode = InsertMode
+		return true
 	case 'A':
 		e.cursorChar = len(e.Lines[e.cursorLine])
 		e.mode = InsertMode
+		return true
 	}
+
+	return false
 }
 
 func insertChar(pre []Char, insert rune, post []Char) []Char {
@@ -248,7 +261,7 @@ func insertChar(pre []Char, insert rune, post []Char) []Char {
 	return newLine
 }
 
-func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
+func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 	line := e.Lines[e.cursorLine]
 
 	pre  := line[0:e.cursorChar]
@@ -260,7 +273,7 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 	if ev.Key == termbox.KeyEsc {
 		e.mode = CommandMode
 		e.cursorChar--
-		return
+		return true
 	} else if renderableChar(ev) {
 		e.Lines[e.cursorLine] = insertChar(pre, ev.Ch, post)
 		e.cursorChar++
@@ -269,18 +282,22 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 			e.OnTextChanged(e)
 		}
 
-		return
+		return true
 	}
 
 	switch (ev.Key) {
 	case termbox.KeyArrowLeft:
 		e.cursorChar--
+		return true
 	case termbox.KeyArrowRight:
 		e.cursorChar++
+		return true
 	case termbox.KeyArrowUp:
 		e.cursorLine--
+		return true
 	case termbox.KeyArrowDown:
 		e.cursorLine++
+		return true
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		if len(pre) > 0 {
 			e.Lines[e.cursorLine] = append(pre[0:len(pre) - 1],
@@ -311,6 +328,8 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 		if e.OnTextChanged != nil {
 			e.OnTextChanged(e)
 		}
+
+		return true
 	case termbox.KeyEnter:
 		newLines := make([][]Char, len(e.Lines) + 1)
 		j := 0
@@ -339,6 +358,8 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 		if e.OnTextChanged != nil {
 			e.OnTextChanged(e)
 		}
+
+		return true
 	case termbox.KeySpace:
 		e.Lines[e.cursorLine] = insertChar(pre, ' ', post)
 		e.cursorChar++
@@ -346,5 +367,9 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) {
 		if e.OnTextChanged != nil {
 			e.OnTextChanged(e)
 		}
+
+		return true
 	}
+
+	return false
 }
