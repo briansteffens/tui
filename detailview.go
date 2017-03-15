@@ -24,6 +24,22 @@ type DetailView struct {
 	SelectedBg termbox.Attribute
 }
 
+func (d *DetailView) Reset() {
+	d.scrollCol = 0
+	d.scrollRow = 0
+	d.cursorCol = 0
+	d.cursorRow = 0
+	d.Columns = []Column {}
+	d.Rows = [][]string {}
+}
+
+func (d *DetailView) SetCursor(row, col int) {
+	d.cursorRow = row
+	d.cursorCol = col
+
+	d.updateScroll()
+}
+
 func (d *DetailView) SetFocus() {
 	d.focus = true
 }
@@ -246,15 +262,18 @@ func (d *DetailView) HandleEvent(ev escapebox.Event) {
 		d.scrollCol--
 	}
 
+	if oldCursorRow != d.cursorRow || oldCursorCol != d.cursorCol {
+		d.updateScroll()
+	}
+}
+
+func (d *DetailView) updateScroll() {
 	// Clamp cursor
 	d.cursorRow = max(0, d.cursorRow)
 	d.cursorRow = min(len(d.Rows) - 1, d.cursorRow)
 
 	d.cursorCol = max(0, d.cursorCol)
 	d.cursorCol = min(len(d.Columns) - 1, d.cursorCol)
-
-	cursorChanged := oldCursorRow != d.cursorRow ||
-			 oldCursorCol != d.cursorCol
 
 	// Clamp scroll
 	d.scrollCol = max(d.scrollCol, 0)
@@ -264,28 +283,26 @@ func (d *DetailView) HandleEvent(ev escapebox.Event) {
 	d.scrollCol = min(d.scrollCol, maxScrollCol)
 	d.scrollRow = min(d.scrollRow, len(d.Rows) - 1)
 
-	if cursorChanged {
-		if d.cursorRow < d.scrollRow {
-			d.scrollRow = d.cursorRow
-		}
+	if d.cursorRow < d.scrollRow {
+		d.scrollRow = d.cursorRow
+	}
 
-		if d.cursorRow >= d.lastVisibleRow() {
-			d.scrollRow = d.cursorRow - d.viewHeight() + 1
-		}
+	if d.cursorRow >= d.lastVisibleRow() {
+		d.scrollRow = d.cursorRow - d.viewHeight() + 1
+	}
 
-		if d.columnLeft(d.cursorCol) < d.scrollCol {
-			d.scrollCol = d.columnLeft(d.cursorCol)
-		}
+	if d.columnLeft(d.cursorCol) < d.scrollCol {
+		d.scrollCol = d.columnLeft(d.cursorCol)
+	}
 
-		if d.columnLeft(d.cursorCol) >= d.scrollColEnd() {
-			d.scrollCol = d.columnLeft(d.cursorCol)
-		}
+	if d.columnLeft(d.cursorCol) >= d.scrollColEnd() {
+		d.scrollCol = d.columnLeft(d.cursorCol)
+	}
 
-		if d.columnRight(d.cursorCol) > d.scrollColEnd() &&
-		   d.columnLeft(d.cursorCol) > d.scrollCol {
-			d.scrollCol = min(
-				d.columnLeft(d.cursorCol),
-				d.columnRight(d.cursorCol) - d.scrollColEnd())
-		}
+	if d.columnRight(d.cursorCol) > d.scrollColEnd() &&
+	   d.columnLeft(d.cursorCol) > d.scrollCol {
+		d.scrollCol = min(
+			d.columnLeft(d.cursorCol),
+			d.columnRight(d.cursorCol) - d.scrollColEnd())
 	}
 }
