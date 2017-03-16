@@ -246,6 +246,23 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 		e.cursorChar = len(e.Lines[e.cursorLine])
 		e.mode = InsertMode
 		return true
+	case 'o':
+		// Make room for another line
+		e.Lines = append(e.Lines, []Char {})
+
+		// Shift lines after cursorLine down
+		for i := len(e.Lines) - 2; i > e.cursorLine; i-- {
+			Log("%d", i)
+			e.Lines[i + 1] = e.Lines[i]
+		}
+
+		// Add the new line
+		e.Lines[e.cursorLine + 1] = []Char {}
+
+		e.cursorLine++
+		e.cursorChar = 0
+		e.mode = InsertMode
+		return true
 	}
 
 	return false
