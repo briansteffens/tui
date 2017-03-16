@@ -17,14 +17,7 @@ func main() {
 		Bounds: tui.Rect { Left: 2, Top: 6, Width: 30, Height: 10 },
 	}
 
-	edit1.SetText("Hello! This is a file which has a line!\n" +
-		      "And here is another line woah\n" +
-		      "And yet another\n" +
-		      "\n" +
-		      "Guess what\n" +
-		      "They keep going!\n" +
-		      "Again! Another wrapping line gogogo\n" +
-		      "Ok one more")
+	edit1.SetText("abcdefgh")
 
 	l := tui.Label {
 		Bounds: tui.Rect { Left: 2, Top: 1, Width: 20, Height: 1 },

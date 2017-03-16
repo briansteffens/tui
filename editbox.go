@@ -42,8 +42,10 @@ func (e *EditBox) GetCursor() int {
 	return ret + e.cursorChar
 }
 
-func (e *EditBox) GetChar(index int) (*Char, error) {
+// Find the line and char index where the given character is
+func (e *EditBox) indexToChar(index int) (int, int, bool) {
 	for l := 0; l < len(e.Lines); l++ {
+		// "+ 1" for implicit newline
 		lineWidth := len(e.Lines[l]) + 1
 
 		if index >= lineWidth {
@@ -51,15 +53,27 @@ func (e *EditBox) GetChar(index int) (*Char, error) {
 			continue
 		}
 
-		// Implicit newline
-		if index == lineWidth - 1 {
-			return &Char { Char: '\n' }, nil
-		}
-
-		return &(e.Lines[l][index]), nil
+		return l, index, true
 	}
 
-	return nil, errors.New("Index out of range")
+	return -1, -1, false
+}
+
+func (e *EditBox) GetChar(index int) (*Char, error) {
+	lineIndex, charIndex, ok := e.indexToChar(index)
+
+	if !ok {
+		return nil, errors.New("Index out of range")
+	}
+
+	line := e.Lines[lineIndex]
+
+	// Implicit newline
+	if charIndex == len(line) {
+		return &Char { Char: '\n' }, nil
+	}
+
+	return &line[charIndex], nil
 }
 
 func (e *EditBox) GetText() string {
@@ -237,35 +251,82 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 	return false
 }
 
-func insertChar(pre []Char, insert rune, post []Char) []Char {
-	newLine := make([]Char, len(pre) + 1 + len(post))
+func (e *EditBox) fireTextChanged() {
+	if e.OnTextChanged != nil {
+		e.OnTextChanged(e)
+	}
+}
 
-	j := 0
+func (e *EditBox) insertAt(lineIndex, charIndex int, newText string) {
+	line := e.Lines[lineIndex]
+
+	pre  := line[0:charIndex]
+	post := line[charIndex:len(line)]
+
+	newLines := [][]Char {}
+
+	newLine := make([]Char, len(pre))
+
+	// Copy the pre part of the line being inserted into
 	for i := 0; i < len(pre); i++ {
-		newLine[j] = pre[i]
-		j++
+		newLine[i] = pre[i]
 	}
 
-	newLine[j] = Char {
-		Char: insert,
-		Fg: termbox.ColorWhite,
-		Bg: termbox.ColorBlack,
-	}
-	j++
+	// Copy the new text into place
+	for _, r := range newText {
+		if r != '\n' {
+			newLine = append(newLine, Char { Char: r })
+			continue
+		}
 
+		newLines = append(newLines, newLine)
+		newLine = []Char {}
+	}
+
+	// Copy the post part of the line being inserted into
 	for i := 0; i < len(post); i++ {
-		newLine[j] = post[i]
-		j++
+		newLine = append(newLine, post[i])
 	}
 
-	return newLine
+	newLines = append(newLines, newLine)
+
+	// If no new lines were added (just one line modified), update that one
+	// line in place to save a linear copy
+	if len(newLines) == 1 {
+		e.Lines[lineIndex] = newLines[0]
+		e.fireTextChanged()
+		return
+	}
+
+	// If lines were added, the whole lines array needs to be shifted down
+	oldLinesLen := len(e.Lines)
+
+	// Make room at the end of the array
+	for i := 0; i < len(newLines) - 1; i++ {
+		Log("newline")
+		e.Lines = append(e.Lines, []Char {})
+	}
+
+	// Shift post lines to the end of the array to make room for new lines
+	shiftDistance := len(newLines) - 1
+
+	for i := oldLinesLen - 1; i >= lineIndex + 1; i-- {
+		e.Lines[i + shiftDistance] = e.Lines[i]
+	}
+
+	// Copy new lines into place
+	for i := 0; i < len(newLines); i++ {
+		e.Lines[lineIndex + i] = newLines[i]
+	}
+
+	e.fireTextChanged()
+}
+
+func (e *EditBox) Insert(newText string) {
+	e.insertAt(e.cursorLine, e.cursorChar, newText)
 }
 
 func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
-	if ev.Key == termbox.KeyTab {
-		Log("TAB HERE")
-	}
-
 	line := e.Lines[e.cursorLine]
 
 	pre  := line[0:e.cursorChar]
@@ -274,18 +335,21 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 	preLines := e.Lines[0:e.cursorLine]
 	postLines := e.Lines[e.cursorLine + 1:len(e.Lines)]
 
+	if ev.Key == termbox.KeyTab {
+		e.Insert("    ")
+		e.cursorChar += 4
+		return true
+	}
+
 	if ev.Key == termbox.KeyEsc {
 		e.mode = CommandMode
 		e.cursorChar--
 		return true
-	} else if renderableChar(ev) {
-		e.Lines[e.cursorLine] = insertChar(pre, ev.Ch, post)
+	}
+
+	if renderableChar(ev) {
+		e.Insert(string(ev.Ch))
 		e.cursorChar++
-
-		if e.OnTextChanged != nil {
-			e.OnTextChanged(e)
-		}
-
 		return true
 	}
 
@@ -293,15 +357,19 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 	case termbox.KeyArrowLeft:
 		e.cursorChar--
 		return true
+
 	case termbox.KeyArrowRight:
 		e.cursorChar++
 		return true
+
 	case termbox.KeyArrowUp:
 		e.cursorLine--
 		return true
+
 	case termbox.KeyArrowDown:
 		e.cursorLine++
 		return true
+
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		if len(pre) > 0 {
 			e.Lines[e.cursorLine] = append(pre[0:len(pre) - 1],
@@ -329,50 +397,23 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 						       post...)
 		}
 
-		if e.OnTextChanged != nil {
-			e.OnTextChanged(e)
-		}
+		e.fireTextChanged()
 
 		return true
+
 	case termbox.KeyEnter:
-		newLines := make([][]Char, len(e.Lines) + 1)
-		j := 0
-
-		for i := 0; i < len(preLines); i++ {
-			newLines[j] = preLines[i]
-			j++
-		}
-
-		newLines[j] = pre
-		j++
-
-		newLines[j] = post
-		j++
-
-		for i := 0; i < len(postLines); i++ {
-			newLines[j] = postLines[i]
-			j++
-		}
-
-		e.Lines = newLines
-
+		e.Insert("\n")
 		e.cursorLine++
 		e.cursorChar = 0
 
-		if e.OnTextChanged != nil {
-			e.OnTextChanged(e)
-		}
-
 		return true
+
 	case termbox.KeySpace:
-		e.Lines[e.cursorLine] = insertChar(pre, ' ', post)
+		e.Insert(" ")
 		e.cursorChar++
 
-		if e.OnTextChanged != nil {
-			e.OnTextChanged(e)
-		}
-
 		return true
+
 	case termbox.KeyTab:
 		return true
 	}
