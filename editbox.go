@@ -270,6 +270,65 @@ func (e *EditBox) Insert(newText string) {
 	e.insertAt(e.cursorLine, e.cursorChar, newText)
 }
 
+func (e *EditBox) Delete() {
+	line := e.Lines[e.cursorLine]
+
+	// Nothing to delete
+	if len(e.Lines) == 1 && len(line) == 0 {
+		return
+	}
+
+	// Delete from current line
+	if e.cursorChar < len(line) {
+		newLine := make([]Char, len(line) - 1)
+
+		j := 0
+		for i := 0; i < len(line); i++ {
+			if i == e.cursorChar {
+				continue
+			}
+
+			newLine[j] = line[i]
+			j++
+		}
+
+		e.Lines[e.cursorLine] = newLine
+		e.fireTextChanged()
+
+		return
+	}
+
+	if e.cursorLine == len(e.Lines) - 1 {
+		return
+	}
+
+	// Cursor is on the implicit newline at the end of a line and there
+	// are more lines after it. Concat this and the next line.
+	nextLine := e.Lines[e.cursorLine + 1]
+	newLines := make([][]Char, len(e.Lines) - 1)
+
+	j := 0
+	for i := 0; i < e.cursorLine; i++ {
+		newLines[j] = e.Lines[i]
+		j++
+	}
+
+	newLine := []Char {}
+	newLine = append(newLine, line...)
+	newLine = append(newLine, nextLine...)
+
+	newLines[j] = newLine
+	j++
+
+	for i := e.cursorLine + 2; i < len(e.Lines); i++ {
+		newLines[j] = e.Lines[i]
+		j++
+	}
+
+	e.Lines = newLines
+	e.fireTextChanged()
+}
+
 func removeFromLeft(src []Char, toRemove int) []Char {
 	ret := make([]Char, len(src) - toRemove)
 
@@ -444,6 +503,19 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 		handled = true
 	}
 
+	if !handled && ev.Key == termbox.KeyDelete {
+		e.Delete()
+		handled = true
+	}
+
+	if !handled && (ev.Key == termbox.KeyBackspace ||
+			ev.Key == termbox.KeyBackspace2) {
+		if e.CursorPrevious() {
+			e.Delete()
+		}
+		handled = true
+	}
+
 	if !handled && e.mode == CommandMode {
 		handled = e.handleCommandModeEvent(ev)
 	} else if !handled && e.mode == InsertMode {
@@ -560,6 +632,9 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 	case 'b':
 		e.previousWord()
 		return true
+	case 'x':
+		e.Delete()
+		return true
 	case 'o':
 		// Make room for another line
 		e.Lines = append(e.Lines, []Char {})
@@ -583,14 +658,6 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 }
 
 func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
-	line := e.Lines[e.cursorLine]
-
-	pre  := line[0:e.cursorChar]
-	post := line[e.cursorChar:len(line)]
-
-	preLines := e.Lines[0:e.cursorLine]
-	postLines := e.Lines[e.cursorLine + 1:len(e.Lines)]
-
 	if ev.Key == termbox.KeyTab {
 		e.Insert("    ")
 		e.cursorChar += tabWidth
@@ -615,37 +682,6 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 	}
 
 	switch (ev.Key) {
-	case termbox.KeyBackspace, termbox.KeyBackspace2:
-		if len(pre) > 0 {
-			e.Lines[e.cursorLine] = append(pre[0:len(pre) - 1],
-						       post...)
-			e.cursorChar--
-		} else if e.cursorLine > 0 {
-			newLines := make([][]Char, len(e.Lines) - 1)
-			j := 0
-
-			for i := 0; i < len(preLines); i++ {
-				newLines[j] = preLines[i]
-				j++
-			}
-
-			for i := 0; i < len(postLines); i++ {
-				newLines[j] = postLines[i]
-				j++
-			}
-
-			e.Lines = newLines
-
-			e.cursorLine--
-			e.cursorChar = len(e.Lines[e.cursorLine])
-			e.Lines[e.cursorLine] = append(e.Lines[e.cursorLine],
-						       post...)
-		}
-
-		e.fireTextChanged()
-
-		return true
-
 	case termbox.KeyEnter:
 		e.Insert("\n")
 		e.cursorLine++
