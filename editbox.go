@@ -195,9 +195,19 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 
 	handled := false
 
-	if e.mode == CommandMode {
+	if !handled && ev.Key == termbox.KeyHome {
+		e.cursorChar = 0
+		handled = true
+	}
+
+	if !handled && ev.Key == termbox.KeyEnd {
+		e.cursorChar = len(e.Lines[e.cursorLine]) - 1
+		handled = true
+	}
+
+	if !handled && e.mode == CommandMode {
 		handled = e.handleCommandModeEvent(ev)
-	} else if e.mode == InsertMode {
+	} else if !handled && e.mode == InsertMode {
 		handled = e.handleInsertModeEvent(ev)
 	}
 
