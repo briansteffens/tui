@@ -44,6 +44,16 @@ func (e *EditBox) GetCursor() int {
 	return ret + e.cursorChar
 }
 
+func (e *EditBox) CursorChar() *Char {
+	line := e.Lines[e.cursorLine]
+
+	if e.cursorChar == len(line) {
+		return &Char { Char: '\n' }
+	}
+
+	return &line[e.cursorChar]
+}
+
 // Find the line and char index where the given character is
 func (e *EditBox) indexToChar(index int) (int, int, bool) {
 	for l := 0; l < len(e.Lines); l++ {
@@ -238,7 +248,6 @@ func (e *EditBox) insertAt(lineIndex, charIndex int, newText string) {
 
 	// Make room at the end of the array
 	for i := 0; i < len(newLines) - 1; i++ {
-		Log("newline")
 		e.Lines = append(e.Lines, []Char {})
 	}
 
@@ -296,6 +305,103 @@ func (e *EditBox) shiftTab() {
 
 	e.Lines[e.cursorLine] = removeFromLeft(line, toRemove)
 	e.cursorChar -= toRemove
+}
+
+func (e *EditBox) CursorNext() bool {
+	e.cursorChar++
+
+	if e.cursorChar <= len(e.Lines[e.cursorLine]) {
+		return true
+	}
+
+	// No more lines, undo the move
+	if e.cursorLine == len(e.Lines) - 1 {
+		e.cursorChar--
+		return false
+	}
+
+	// Advance to the next line
+	e.cursorLine++
+	e.cursorChar = 0
+	return true
+}
+
+func (e *EditBox) CursorPrevious() bool {
+	e.cursorChar--
+
+	if e.cursorChar >= 0 {
+		return true
+	}
+
+	// No more lines, undo the move
+	if e.cursorLine == 0 {
+		e.cursorChar++
+		return false
+	}
+
+	// Move to the previous line
+	e.cursorLine--
+	e.cursorChar = len(e.Lines[e.cursorLine])
+	return true
+}
+
+func (e *EditBox) cursorAtBeginning() bool {
+	return e.cursorLine == 0 && e.cursorChar == 0
+}
+
+func (e *EditBox) cursorAtEnd() bool {
+	return e.cursorLine == len(e.Lines) - 1 &&
+	       e.cursorChar == len(e.Lines[e.cursorLine]) - 1
+}
+
+func isDelimiter(c Char) bool {
+	return c.Char == ' ' || c.Char == '\t' || c.Char == '\n'
+}
+
+func (e *EditBox) nextWord() {
+	for !isDelimiter(*e.CursorChar()) {
+		e.CursorNext()
+	}
+
+	for e.CursorNext() && isDelimiter(*e.CursorChar()) &&
+	    e.CursorChar().Char != '\n' {
+	}
+}
+
+func (e *EditBox) previousWord() {
+	if !e.CursorPrevious() {
+		return
+	}
+
+	// Rewind through delimiters until we reach a normal character or \n
+	for isDelimiter(*e.CursorChar()) && e.CursorChar().Char != '\n' {
+		if !e.CursorPrevious() {
+			return
+		}
+	}
+
+	if e.CursorChar().Char == '\n' {
+		e.CursorPrevious()
+
+		if e.CursorChar().Char == '\n' {
+			e.CursorNext()
+			return
+		}
+	}
+
+	// Rewind through normal characters (previous string) until a delimiter
+	// is reached
+	for !isDelimiter(*e.CursorChar()) {
+		if !e.CursorPrevious() {
+			return
+		}
+	}
+
+	if e.cursorAtBeginning() {
+		return
+	}
+
+	e.CursorNext()
 }
 
 func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
@@ -447,6 +553,12 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 	case 'A':
 		e.cursorChar = len(e.Lines[e.cursorLine])
 		e.mode = InsertMode
+		return true
+	case 'w':
+		e.nextWord()
+		return true
+	case 'b':
+		e.previousWord()
 		return true
 	case 'o':
 		// Make room for another line
