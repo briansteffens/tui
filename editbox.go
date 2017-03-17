@@ -9,6 +9,7 @@ import (
 const (
 	CommandMode = 0
 	InsertMode  = 1
+	tabWidth    = 4
 )
 
 type Char struct {
@@ -185,6 +186,118 @@ func (e *EditBox) UnsetFocus() {
 	e.focus = false
 }
 
+func (e *EditBox) fireTextChanged() {
+	if e.OnTextChanged != nil {
+		e.OnTextChanged(e)
+	}
+}
+
+func (e *EditBox) insertAt(lineIndex, charIndex int, newText string) {
+	line := e.Lines[lineIndex]
+
+	pre  := line[0:charIndex]
+	post := line[charIndex:len(line)]
+
+	newLines := [][]Char {}
+
+	newLine := make([]Char, len(pre))
+
+	// Copy the pre part of the line being inserted into
+	for i := 0; i < len(pre); i++ {
+		newLine[i] = pre[i]
+	}
+
+	// Copy the new text into place
+	for _, r := range newText {
+		if r != '\n' {
+			newLine = append(newLine, Char { Char: r })
+			continue
+		}
+
+		newLines = append(newLines, newLine)
+		newLine = []Char {}
+	}
+
+	// Copy the post part of the line being inserted into
+	for i := 0; i < len(post); i++ {
+		newLine = append(newLine, post[i])
+	}
+
+	newLines = append(newLines, newLine)
+
+	// If no new lines were added (just one line modified), update that one
+	// line in place to save a linear copy
+	if len(newLines) == 1 {
+		e.Lines[lineIndex] = newLines[0]
+		e.fireTextChanged()
+		return
+	}
+
+	// If lines were added, the whole lines array needs to be shifted down
+	oldLinesLen := len(e.Lines)
+
+	// Make room at the end of the array
+	for i := 0; i < len(newLines) - 1; i++ {
+		Log("newline")
+		e.Lines = append(e.Lines, []Char {})
+	}
+
+	// Shift post lines to the end of the array to make room for new lines
+	shiftDistance := len(newLines) - 1
+
+	for i := oldLinesLen - 1; i >= lineIndex + 1; i-- {
+		e.Lines[i + shiftDistance] = e.Lines[i]
+	}
+
+	// Copy new lines into place
+	for i := 0; i < len(newLines); i++ {
+		e.Lines[lineIndex + i] = newLines[i]
+	}
+
+	e.fireTextChanged()
+}
+
+func (e *EditBox) Insert(newText string) {
+	e.insertAt(e.cursorLine, e.cursorChar, newText)
+}
+
+func removeFromLeft(src []Char, toRemove int) []Char {
+	ret := make([]Char, len(src) - toRemove)
+
+	for i := toRemove; i < len(ret); i++ {
+		ret[i - toRemove] = src[i]
+	}
+
+	return ret
+}
+
+func (e *EditBox) shiftTab() {
+	line := e.Lines[e.cursorLine]
+
+	if len(line) == 0 {
+		return
+	}
+
+	if line[0].Char == '\t' {
+		e.Lines[e.cursorLine] = removeFromLeft(line, 1)
+		e.cursorChar--
+		return
+	}
+
+	toRemove := 0
+
+	for i := 0; i < len(line) && i < 4; i++ {
+		toRemove++
+	}
+
+	if toRemove == 0 {
+		return
+	}
+
+	e.Lines[e.cursorLine] = removeFromLeft(line, toRemove)
+	e.cursorChar -= toRemove
+}
+
 func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 	if ev.Type != termbox.EventKey {
 		return false
@@ -357,81 +470,6 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 	return false
 }
 
-func (e *EditBox) fireTextChanged() {
-	if e.OnTextChanged != nil {
-		e.OnTextChanged(e)
-	}
-}
-
-func (e *EditBox) insertAt(lineIndex, charIndex int, newText string) {
-	line := e.Lines[lineIndex]
-
-	pre  := line[0:charIndex]
-	post := line[charIndex:len(line)]
-
-	newLines := [][]Char {}
-
-	newLine := make([]Char, len(pre))
-
-	// Copy the pre part of the line being inserted into
-	for i := 0; i < len(pre); i++ {
-		newLine[i] = pre[i]
-	}
-
-	// Copy the new text into place
-	for _, r := range newText {
-		if r != '\n' {
-			newLine = append(newLine, Char { Char: r })
-			continue
-		}
-
-		newLines = append(newLines, newLine)
-		newLine = []Char {}
-	}
-
-	// Copy the post part of the line being inserted into
-	for i := 0; i < len(post); i++ {
-		newLine = append(newLine, post[i])
-	}
-
-	newLines = append(newLines, newLine)
-
-	// If no new lines were added (just one line modified), update that one
-	// line in place to save a linear copy
-	if len(newLines) == 1 {
-		e.Lines[lineIndex] = newLines[0]
-		e.fireTextChanged()
-		return
-	}
-
-	// If lines were added, the whole lines array needs to be shifted down
-	oldLinesLen := len(e.Lines)
-
-	// Make room at the end of the array
-	for i := 0; i < len(newLines) - 1; i++ {
-		Log("newline")
-		e.Lines = append(e.Lines, []Char {})
-	}
-
-	// Shift post lines to the end of the array to make room for new lines
-	shiftDistance := len(newLines) - 1
-
-	for i := oldLinesLen - 1; i >= lineIndex + 1; i-- {
-		e.Lines[i + shiftDistance] = e.Lines[i]
-	}
-
-	// Copy new lines into place
-	for i := 0; i < len(newLines); i++ {
-		e.Lines[lineIndex + i] = newLines[i]
-	}
-
-	e.fireTextChanged()
-}
-
-func (e *EditBox) Insert(newText string) {
-	e.insertAt(e.cursorLine, e.cursorChar, newText)
-}
-
 func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 	line := e.Lines[e.cursorLine]
 
@@ -443,7 +481,12 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 
 	if ev.Key == termbox.KeyTab {
 		e.Insert("    ")
-		e.cursorChar += 4
+		e.cursorChar += tabWidth
+		return true
+	}
+
+	if ev.Seq == SeqShiftTab {
+		e.shiftTab()
 		return true
 	}
 
