@@ -30,6 +30,7 @@ type EditBox struct {
 	scroll        int
 	focus         bool
 	mode          int
+	chord         []escapebox.Event
 }
 
 func (e *EditBox) GetCursor() int {
@@ -222,7 +223,65 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 	return handled
 }
 
+func (e *EditBox) handleChord_d() bool {
+	if e.chord[1].Ch == 'd' {
+		// Delete current line
+		if len(e.Lines) == 0 {
+			return true
+		}
+
+		if len(e.Lines) == 1 {
+			e.Lines[0] = []Char {}
+			return true
+		}
+
+		newLines := make([][]Char, len(e.Lines) - 1)
+
+		for i := 0; i < e.cursorLine; i++ {
+			newLines[i] = e.Lines[i]
+		}
+
+		for i := e.cursorLine + 1; i < len(e.Lines); i++ {
+			newLines[i - 1] = e.Lines[i]
+		}
+
+		e.Lines = newLines
+	}
+
+	return true
+}
+
 func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
+	// Start a chord
+	if len(e.chord) == 0 && ev.Ch == 'd' {
+		e.chord = []escapebox.Event { ev }
+		return true
+	}
+
+	// Continue a chord
+	if len(e.chord) > 0 {
+		// End chord
+		if ev.Key == termbox.KeyEsc {
+			e.chord = []escapebox.Event {}
+			return true
+		}
+
+		e.chord = append(e.chord, ev)
+		consumed := false
+
+		switch e.chord[0].Ch {
+		case 'd':
+			consumed = e.handleChord_d()
+		}
+
+		// Chord consumed
+		if consumed {
+			e.chord = []escapebox.Event {}
+		}
+
+		return true
+	}
+
 	switch ev.Ch {
 	case 'h':
 		e.cursorChar--
