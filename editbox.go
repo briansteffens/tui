@@ -205,6 +205,26 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 		handled = true
 	}
 
+	if !handled && ev.Key == termbox.KeyArrowLeft {
+		e.cursorChar--
+		handled = true
+	}
+
+	if !handled && ev.Key == termbox.KeyArrowRight {
+		e.cursorChar++
+		handled = true
+	}
+
+	if !handled && ev.Key == termbox.KeyArrowUp {
+		e.cursorLine--
+		handled = true
+	}
+
+	if !handled && ev.Key == termbox.KeyArrowDown {
+		e.cursorLine++
+		handled = true
+	}
+
 	if !handled && e.mode == CommandMode {
 		handled = e.handleCommandModeEvent(ev)
 	} else if !handled && e.mode == InsertMode {
@@ -440,22 +460,6 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 	}
 
 	switch (ev.Key) {
-	case termbox.KeyArrowLeft:
-		e.cursorChar--
-		return true
-
-	case termbox.KeyArrowRight:
-		e.cursorChar++
-		return true
-
-	case termbox.KeyArrowUp:
-		e.cursorLine--
-		return true
-
-	case termbox.KeyArrowDown:
-		e.cursorLine++
-		return true
-
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		if len(pre) > 0 {
 			e.Lines[e.cursorLine] = append(pre[0:len(pre) - 1],
