@@ -12,6 +12,39 @@ const (
 	tabWidth    = 4
 )
 
+type CharClass int
+
+const (
+	ClassNormal     = 0
+	ClassWhiteSpace = 1
+	ClassSymbol     = 2
+)
+
+var whitespace []rune = []rune { ' ', '\t' }
+var symbols []rune = []rune { '!', '@', '#', '$', '%', '^', '*', '(', ')' }
+
+func isRune(r rune, in []rune) bool {
+	for _, i := range in {
+		if r == i {
+			return true
+		}
+	}
+
+	return false
+}
+
+func getCharClass(r rune) CharClass {
+	if isRune(r, symbols) {
+		return ClassSymbol
+	}
+
+	if isRune(r, whitespace) {
+		return ClassWhiteSpace
+	}
+
+	return ClassNormal
+}
+
 type Char struct {
 	Char rune
 	Fg   termbox.Attribute
@@ -270,12 +303,12 @@ func (e *EditBox) Insert(newText string) {
 	e.insertAt(e.cursorLine, e.cursorChar, newText)
 }
 
-func (e *EditBox) Delete() {
+func (e *EditBox) Delete() bool {
 	line := e.Lines[e.cursorLine]
 
 	// Nothing to delete
 	if len(e.Lines) == 1 && len(line) == 0 {
-		return
+		return false
 	}
 
 	// Delete from current line
@@ -295,11 +328,11 @@ func (e *EditBox) Delete() {
 		e.Lines[e.cursorLine] = newLine
 		e.fireTextChanged()
 
-		return
+		return true
 	}
 
 	if e.cursorLine == len(e.Lines) - 1 {
-		return
+		return true
 	}
 
 	// Cursor is on the implicit newline at the end of a line and there
@@ -327,6 +360,8 @@ func (e *EditBox) Delete() {
 
 	e.Lines = newLines
 	e.fireTextChanged()
+
+	return true
 }
 
 func removeFromLeft(src []Char, toRemove int) []Char {
@@ -409,8 +444,8 @@ func (e *EditBox) cursorAtBeginning() bool {
 }
 
 func (e *EditBox) cursorAtEnd() bool {
-	return e.cursorLine == len(e.Lines) - 1 &&
-	       e.cursorChar == len(e.Lines[e.cursorLine]) - 1
+	return e.cursorLine >= len(e.Lines) - 1 &&
+	       e.cursorChar >= len(e.Lines[e.cursorLine]) - 1
 }
 
 func isDelimiter(c Char) bool {
@@ -572,9 +607,33 @@ func (e *EditBox) handleChord_d() bool {
 	return true
 }
 
+func (e *EditBox) handleChord_c() bool {
+	if e.chord[1].Ch == 'w' {
+		// Delete current word
+		deleteClass := getCharClass(e.CursorChar().Char)
+
+		for {
+			e.Delete()
+
+			if getCharClass(e.CursorChar().Char) != deleteClass {
+				break
+			}
+
+			if e.cursorAtEnd() {
+				e.Delete()
+				break
+			}
+		}
+
+		e.mode = InsertMode
+	}
+
+	return true
+}
+
 func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 	// Start a chord
-	if len(e.chord) == 0 && ev.Ch == 'd' {
+	if len(e.chord) == 0 && (ev.Ch == 'd' || ev.Ch == 'c') {
 		e.chord = []escapebox.Event { ev }
 		return true
 	}
@@ -593,6 +652,8 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 		switch e.chord[0].Ch {
 		case 'd':
 			consumed = e.handleChord_d()
+		case 'c':
+			consumed = e.handleChord_c()
 		}
 
 		// Chord consumed
