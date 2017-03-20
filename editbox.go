@@ -571,12 +571,17 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 	e.cursorChar = min(minChar, e.cursorChar)
 
 	// Detect and fire OnCursorMoved
-	if e.OnCursorMoved != nil &&
-	   (oldCursorLine != e.cursorLine || oldCursorChar != e.cursorChar) {
-		e.OnCursorMoved(e)
+	if oldCursorLine != e.cursorLine || oldCursorChar != e.cursorChar {
+		e.fireCursorMoved()
 	}
 
 	return handled
+}
+
+func (e *EditBox) fireCursorMoved() {
+	if e.OnCursorMoved != nil {
+		e.OnCursorMoved(e)
+	}
 }
 
 func (e *EditBox) handleChord_d() bool {
@@ -588,6 +593,7 @@ func (e *EditBox) handleChord_d() bool {
 
 		if len(e.Lines) == 1 {
 			e.Lines[0] = []Char {}
+			e.fireCursorMoved()
 			return true
 		}
 
@@ -602,6 +608,8 @@ func (e *EditBox) handleChord_d() bool {
 		}
 
 		e.Lines = newLines
+
+		e.fireCursorMoved()
 	}
 
 	return true
