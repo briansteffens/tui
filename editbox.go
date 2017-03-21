@@ -20,6 +20,53 @@ const (
 	ClassSymbol     = 2
 )
 
+const QuoteNone   rune = 0
+const QuoteSingle rune = '\''
+const QuoteDouble rune = '"'
+
+type Char struct {
+	Char    rune
+	Fg      termbox.Attribute
+	Bg      termbox.Attribute
+
+	// Highlighter data
+	Quote   rune
+	Escaped bool
+}
+
+const colorKeyword termbox.Attribute = termbox.ColorBlue
+const colorType    termbox.Attribute = termbox.ColorRed
+
+type Token int
+
+const (
+	TokenNone    Token = 0
+	TokenKeyword Token = 1
+	TokenType    Token = 2
+)
+
+type Dialect func(string) Token
+
+type TextChangedEvent func(*EditBox)
+type CursorMovedEvent func(*EditBox)
+type Highlighter      func(*EditBox)
+
+type EditBox struct {
+	Bounds        Rect
+	Lines         [][]Char
+	OnTextChanged TextChangedEvent
+	OnCursorMoved CursorMovedEvent
+	Highlighter   Highlighter
+	Dialect       Dialect
+
+	cursorLine    int
+	cursorChar    int
+	scroll        int
+	focus         bool
+	mode          int
+	chord         []escapebox.Event
+}
+
 var whitespace []rune = []rune { ' ', '\t' }
 var symbols []rune = []rune { '!', '@', '#', '$', '%', '^', '*', '(', ')' }
 
@@ -43,28 +90,6 @@ func getCharClass(r rune) CharClass {
 	}
 
 	return ClassNormal
-}
-
-type Char struct {
-	Char rune
-	Fg   termbox.Attribute
-	Bg   termbox.Attribute
-}
-
-type TextChangedEvent func(*EditBox)
-type CursorMovedEvent func(*EditBox)
-
-type EditBox struct {
-	Bounds        Rect
-	Lines         [][]Char
-	OnTextChanged TextChangedEvent
-	OnCursorMoved CursorMovedEvent
-	cursorLine    int
-	cursorChar    int
-	scroll        int
-	focus         bool
-	mode          int
-	chord         []escapebox.Event
 }
 
 func (e *EditBox) GetCursor() int {
@@ -161,9 +186,7 @@ func (e *EditBox) SetText(raw string) {
 		}
 	}
 
-	if e.OnTextChanged != nil {
-		e.OnTextChanged(e)
-	}
+	e.fireTextChanged()
 }
 
 func (e *EditBox) Render() {
@@ -230,6 +253,10 @@ func (e *EditBox) UnsetFocus() {
 }
 
 func (e *EditBox) fireTextChanged() {
+	if e.Highlighter != nil {
+		e.Highlighter(e)
+	}
+
 	if e.OnTextChanged != nil {
 		e.OnTextChanged(e)
 	}
@@ -769,4 +796,134 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 	}
 
 	return false
+}
+
+func (e *EditBox) AllChars() []*Char {
+	ret := []*Char {}
+
+	for l := 0; l < len(e.Lines); l++ {
+		line := &e.Lines[l]
+
+		for c := 0; c < len(*line); c++ {
+			ret = append(ret, &(*line)[c])
+		}
+
+		ret = append(ret, &Char {
+			Char: '\n',
+		})
+	}
+
+	return ret
+}
+
+func BasicHighlighter(e *EditBox) {
+	delimiters := []rune { ' ', '\n', '(', ')', ',', ';' }
+
+	var cur, next *Char
+	var quote rune
+	var quoteStartIndex int
+
+	word := ""
+
+	chars := e.AllChars()
+
+	// Loop over all chars plus one. i is always the index of 'next' so
+	// the loop is basically running one char ahead. Run one extra time
+	// to process the last character, which at that point will be in cur.
+	for i := 0; i <= len(chars); i++ {
+		cur = next
+
+		if i < len(chars) {
+			next = chars[i]
+		} else {
+			next = nil
+		}
+
+		// Skip first iteration because cur won't be set yet.
+		if cur == nil {
+			continue
+		}
+
+		// Is the next character:
+		//   - Preceded by a slash
+		nextSlashEscaped := next != nil && cur.Char == '\\'
+
+		// Is the next character:
+		//   - A quote char of the same type as the quote it's inside
+		//   - Preceded by another of the same quote char type
+		//   - Not the second character in a quote
+		nextDoubleEscaped := next != nil && next.Char == quote &&
+				     cur.Char == quote && quoteStartIndex < i
+
+		// Is the next character:
+		//   - Either slash- or double-escaped
+		//   - Not preceded by another escaped character
+		if next != nil {
+			next.Escaped = !cur.Escaped &&
+				       (nextSlashEscaped || nextDoubleEscaped)
+		}
+
+		// Is the current character:
+		//   - A quote char
+		//   - Not escaped
+		//   - Not the first in a double-escaped sequence ('' or "")
+		isCurQuote := !cur.Escaped && !nextDoubleEscaped &&
+			      (cur.Char == QuoteSingle ||
+			       cur.Char == QuoteDouble)
+
+		quoteToggledThisLoop := false
+
+		// Start of a quote
+		if isCurQuote && quote == QuoteNone {
+			quote = cur.Char
+			quoteToggledThisLoop = true
+			quoteStartIndex = i
+		}
+
+		cur.Quote = quote
+
+		// Check for word delimiter
+		isDelimiter := isRune(cur.Char, delimiters)
+
+		// Reset word if we hit a delimiter or EOF
+		if isDelimiter || next == nil {
+			tokenType := TokenNone
+
+			if e.Dialect != nil {
+				tokenType = e.Dialect(word)
+			}
+
+			wordColor := termbox.ColorWhite
+
+			switch (tokenType) {
+			case TokenKeyword:
+				wordColor = colorKeyword
+			case TokenType:
+				wordColor = colorType
+			}
+
+			if wordColor != termbox.ColorWhite {
+				for j := i - 1; j >= i - len(word) - 1; j-- {
+					chars[j].Fg = wordColor
+				}
+			}
+
+			word = ""
+		} else {
+			word += string(cur.Char)
+		}
+
+		// Color quotes
+		if quote != QuoteNone {
+			cur.Fg = termbox.ColorGreen
+		} else {
+			cur.Fg = termbox.ColorWhite
+		}
+
+		// End quote
+		if isCurQuote && quote != QuoteNone && !quoteToggledThisLoop &&
+		   quote == cur.Char {
+			quote = QuoteNone
+		}
+	}
 }
