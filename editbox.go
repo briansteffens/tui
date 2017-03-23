@@ -666,9 +666,20 @@ func (e *EditBox) handleChord_c() bool {
 	return true
 }
 
+func (e *EditBox) handleChord_g() bool {
+	if e.chord[1].Ch == 'g' {
+		// Jump to beginning of file
+		e.cursorLine = 0
+		e.cursorChar = 0
+	}
+
+	return true
+}
+
 func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 	// Start a chord
-	if len(e.chord) == 0 && (ev.Ch == 'd' || ev.Ch == 'c') {
+	if len(e.chord) == 0 &&
+	   (ev.Ch == 'd' || ev.Ch == 'c' || ev.Ch == 'g') {
 		e.chord = []escapebox.Event { ev }
 		return true
 	}
@@ -689,6 +700,8 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 			consumed = e.handleChord_d()
 		case 'c':
 			consumed = e.handleChord_c()
+		case 'g':
+			consumed = e.handleChord_g()
 		}
 
 		// Chord consumed
