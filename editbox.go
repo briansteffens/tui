@@ -748,6 +748,10 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 		e.cursorChar = 0
 		e.mode = InsertMode
 		return true
+	case 'G':
+		e.cursorLine = len(e.Lines) - 1
+		e.cursorChar = len(e.Lines[e.cursorLine]) - 1
+		return true
 	}
 
 	return false
