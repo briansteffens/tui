@@ -268,6 +268,12 @@ func (d *DetailView) HandleEvent(ev escapebox.Event) bool {
 	case termbox.KeyArrowLeft:
 		d.scrollCol--
 		handled = true
+	case termbox.KeyArrowUp:
+		d.cursorRow--
+		handled = true
+	case termbox.KeyArrowDown:
+		d.cursorRow++
+		handled = true
 	case termbox.KeyHome:
 		d.cursorCol = 0
 		handled = true
