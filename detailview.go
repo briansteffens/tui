@@ -280,6 +280,12 @@ func (d *DetailView) HandleEvent(ev escapebox.Event) bool {
 	case termbox.KeyEnd:
 		d.cursorCol = len(d.Columns) - 1
 		handled = true
+	case termbox.KeyPgup:
+		d.cursorRow -= d.viewHeight() - 1
+		handled = true
+	case termbox.KeyPgdn:
+		d.cursorRow += d.viewHeight() - 1
+		handled = true
 	}
 
 	if oldCursorRow != d.cursorRow || oldCursorCol != d.cursorCol {
