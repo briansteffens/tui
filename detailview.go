@@ -268,6 +268,12 @@ func (d *DetailView) HandleEvent(ev escapebox.Event) bool {
 	case termbox.KeyArrowLeft:
 		d.scrollCol--
 		handled = true
+	case termbox.KeyHome:
+		d.cursorCol = 0
+		handled = true
+	case termbox.KeyEnd:
+		d.cursorCol = len(d.Columns) - 1
+		handled = true
 	}
 
 	if oldCursorRow != d.cursorRow || oldCursorCol != d.cursorCol {
