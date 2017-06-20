@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"errors"
 	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
 )
@@ -47,20 +46,41 @@ const (
 
 type Dialect func(string) Token
 
+type DataChangedEvent func(TextBackend)
+
 type TextChangedEvent func(*EditBox)
 type CursorMovedEvent func(*EditBox)
 type Highlighter      func(*EditBox)
 
+type TextBackend interface {
+	GetText() string
+	SetText(raw string)
+	GetChar(index int) (*Char, error)
+	GetCursor() int
+	Insert(text string)
+	Delete()
+	CursorNext() bool
+	CursorPrevious() bool
+	CursorBeginning()
+	CursorAtEnd() bool
+	CursorBeginningOfLine()
+	CursorEndOfLine()
+	LinePrevious()
+	LineNext()
+	ClampCursor()
+	LineCount() int
+	AllChars() []*Char
+	SetDataChangedEvent(DataChangedEvent)
+}
+
 type EditBox struct {
 	Bounds        Rect
-	Lines         [][]Char
 	OnTextChanged TextChangedEvent
 	OnCursorMoved CursorMovedEvent
 	Highlighter   Highlighter
 	Dialect       Dialect
 
-	cursorLine    int
-	cursorChar    int
+	Data          TextBackend
 	scroll        int
 	focus         bool
 	mode          int
@@ -93,103 +113,30 @@ func getCharClass(r rune) CharClass {
 }
 
 func (e *EditBox) GetCursor() int {
-	ret := 0
-
-	for l := 0; l < e.cursorLine; l++ {
-		ret += len(e.Lines[l]) + 1
-	}
-
-	return ret + e.cursorChar
+	return e.Data.GetCursor()
 }
 
 func (e *EditBox) CursorChar() *Char {
-	line := e.Lines[e.cursorLine]
+	ret, err := e.Data.GetChar(e.GetCursor())
 
-	if e.cursorChar == len(line) {
-		return &Char { Char: '\n' }
-	}
-
-	return &line[e.cursorChar]
-}
-
-// Find the line and char index where the given character is
-func (e *EditBox) indexToChar(index int) (int, int, bool) {
-	for l := 0; l < len(e.Lines); l++ {
-		// "+ 1" for implicit newline
-		lineWidth := len(e.Lines[l]) + 1
-
-		if index >= lineWidth {
-			index -= lineWidth
-			continue
-		}
-
-		return l, index, true
-	}
-
-	return -1, -1, false
-}
-
-func (e *EditBox) GetChar(index int) (*Char, error) {
-	lineIndex, charIndex, ok := e.indexToChar(index)
-
-	if !ok {
-		return nil, errors.New("Index out of range")
-	}
-
-	line := e.Lines[lineIndex]
-
-	// Implicit newline
-	if charIndex == len(line) {
-		return &Char { Char: '\n' }, nil
-	}
-
-	return &line[charIndex], nil
-}
-
-func (e *EditBox) GetText() string {
-	ret := ""
-
-	for i, line := range e.Lines {
-		if i > 0 {
-			ret += "\n"
-		}
-
-		for _, char := range line {
-			ret += string(char.Char)
-		}
+	if err != nil {
+		panic(err)
 	}
 
 	return ret
 }
 
+func (e *EditBox) GetText() string {
+	return e.Data.GetText()
+}
+
 func (e *EditBox) SetText(raw string) {
-	e.Lines = [][]Char{}
-
-	line := []Char{}
-
-	for i, c := range raw {
-		isEnd := i == len(raw) - 1
-
-		if c != '\n' {
-			char := Char {
-				Char: c,
-				Fg: termbox.ColorWhite,
-				Bg: termbox.ColorBlack,
-			}
-
-			line = append(line, char)
-		}
-
-		if c == '\n' || isEnd {
-			e.Lines = append(e.Lines, line)
-			line = []Char{}
-		}
-	}
-
+	e.Data.SetText(raw)
 	e.fireTextChanged()
 }
 
 func (e *EditBox) Render() {
+/*
 	textWidth := e.Bounds.Width
 	textHeight := e.Bounds.Height - 1 // Bottom line free for modes/notices
 
@@ -242,6 +189,7 @@ func (e *EditBox) Render() {
 		termPrint(e.Bounds.Left, e.Bounds.Bottom(),
 			  "-- INSERT --")
 	}
+*/
 }
 
 func (e *EditBox) SetFocus() {
@@ -262,133 +210,14 @@ func (e *EditBox) fireTextChanged() {
 	}
 }
 
-func (e *EditBox) insertAt(lineIndex, charIndex int, newText string) {
-	line := e.Lines[lineIndex]
-
-	pre  := line[0:charIndex]
-	post := line[charIndex:len(line)]
-
-	newLines := [][]Char {}
-
-	newLine := make([]Char, len(pre))
-
-	// Copy the pre part of the line being inserted into
-	for i := 0; i < len(pre); i++ {
-		newLine[i] = pre[i]
-	}
-
-	// Copy the new text into place
-	for _, r := range newText {
-		if r != '\n' {
-			newLine = append(newLine, Char { Char: r })
-			continue
-		}
-
-		newLines = append(newLines, newLine)
-		newLine = []Char {}
-	}
-
-	// Copy the post part of the line being inserted into
-	for i := 0; i < len(post); i++ {
-		newLine = append(newLine, post[i])
-	}
-
-	newLines = append(newLines, newLine)
-
-	// If no new lines were added (just one line modified), update that one
-	// line in place to save a linear copy
-	if len(newLines) == 1 {
-		e.Lines[lineIndex] = newLines[0]
-		e.fireTextChanged()
-		return
-	}
-
-	// If lines were added, the whole lines array needs to be shifted down
-	oldLinesLen := len(e.Lines)
-
-	// Make room at the end of the array
-	for i := 0; i < len(newLines) - 1; i++ {
-		e.Lines = append(e.Lines, []Char {})
-	}
-
-	// Shift post lines to the end of the array to make room for new lines
-	shiftDistance := len(newLines) - 1
-
-	for i := oldLinesLen - 1; i >= lineIndex + 1; i-- {
-		e.Lines[i + shiftDistance] = e.Lines[i]
-	}
-
-	// Copy new lines into place
-	for i := 0; i < len(newLines); i++ {
-		e.Lines[lineIndex + i] = newLines[i]
-	}
-
-	e.fireTextChanged()
-}
-
 func (e *EditBox) Insert(newText string) {
-	e.insertAt(e.cursorLine, e.cursorChar, newText)
+	e.Data.Insert(newText)
+	e.fireTextChanged()
 }
 
-func (e *EditBox) Delete() bool {
-	line := e.Lines[e.cursorLine]
-
-	// Nothing to delete
-	if len(e.Lines) == 1 && len(line) == 0 {
-		return false
-	}
-
-	// Delete from current line
-	if e.cursorChar < len(line) {
-		newLine := make([]Char, len(line) - 1)
-
-		j := 0
-		for i := 0; i < len(line); i++ {
-			if i == e.cursorChar {
-				continue
-			}
-
-			newLine[j] = line[i]
-			j++
-		}
-
-		e.Lines[e.cursorLine] = newLine
-		e.fireTextChanged()
-
-		return true
-	}
-
-	if e.cursorLine == len(e.Lines) - 1 {
-		return true
-	}
-
-	// Cursor is on the implicit newline at the end of a line and there
-	// are more lines after it. Concat this and the next line.
-	nextLine := e.Lines[e.cursorLine + 1]
-	newLines := make([][]Char, len(e.Lines) - 1)
-
-	j := 0
-	for i := 0; i < e.cursorLine; i++ {
-		newLines[j] = e.Lines[i]
-		j++
-	}
-
-	newLine := []Char {}
-	newLine = append(newLine, line...)
-	newLine = append(newLine, nextLine...)
-
-	newLines[j] = newLine
-	j++
-
-	for i := e.cursorLine + 2; i < len(e.Lines); i++ {
-		newLines[j] = e.Lines[i]
-		j++
-	}
-
-	e.Lines = newLines
+func (e *EditBox) Delete() {
+	e.Data.Delete()
 	e.fireTextChanged()
-
-	return true
 }
 
 func removeFromLeft(src []Char, toRemove int) []Char {
@@ -402,6 +231,7 @@ func removeFromLeft(src []Char, toRemove int) []Char {
 }
 
 func (e *EditBox) shiftTab() {
+    /*
 	line := e.Lines[e.cursorLine]
 
 	if len(line) == 0 {
@@ -426,53 +256,11 @@ func (e *EditBox) shiftTab() {
 
 	e.Lines[e.cursorLine] = removeFromLeft(line, toRemove)
 	e.cursorChar -= toRemove
-}
-
-func (e *EditBox) CursorNext() bool {
-	e.cursorChar++
-
-	if e.cursorChar <= len(e.Lines[e.cursorLine]) {
-		return true
-	}
-
-	// No more lines, undo the move
-	if e.cursorLine == len(e.Lines) - 1 {
-		e.cursorChar--
-		return false
-	}
-
-	// Advance to the next line
-	e.cursorLine++
-	e.cursorChar = 0
-	return true
-}
-
-func (e *EditBox) CursorPrevious() bool {
-	e.cursorChar--
-
-	if e.cursorChar >= 0 {
-		return true
-	}
-
-	// No more lines, undo the move
-	if e.cursorLine == 0 {
-		e.cursorChar++
-		return false
-	}
-
-	// Move to the previous line
-	e.cursorLine--
-	e.cursorChar = len(e.Lines[e.cursorLine])
-	return true
+	*/
 }
 
 func (e *EditBox) cursorAtBeginning() bool {
-	return e.cursorLine == 0 && e.cursorChar == 0
-}
-
-func (e *EditBox) cursorAtEnd() bool {
-	return e.cursorLine >= len(e.Lines) - 1 &&
-	       e.cursorChar >= len(e.Lines[e.cursorLine]) - 1
+	return e.Data.GetCursor() == 0
 }
 
 func isDelimiter(c Char) bool {
@@ -481,31 +269,31 @@ func isDelimiter(c Char) bool {
 
 func (e *EditBox) nextWord() {
 	for !isDelimiter(*e.CursorChar()) {
-		e.CursorNext()
+		e.Data.CursorNext()
 	}
 
-	for e.CursorNext() && isDelimiter(*e.CursorChar()) &&
+	for e.Data.CursorNext() && isDelimiter(*e.CursorChar()) &&
 	    e.CursorChar().Char != '\n' {
 	}
 }
 
 func (e *EditBox) previousWord() {
-	if !e.CursorPrevious() {
+	if !e.Data.CursorPrevious() {
 		return
 	}
 
 	// Rewind through delimiters until we reach a normal character or \n
 	for isDelimiter(*e.CursorChar()) && e.CursorChar().Char != '\n' {
-		if !e.CursorPrevious() {
+		if !e.Data.CursorPrevious() {
 			return
 		}
 	}
 
 	if e.CursorChar().Char == '\n' {
-		e.CursorPrevious()
+		e.Data.CursorPrevious()
 
 		if e.CursorChar().Char == '\n' {
-			e.CursorNext()
+			e.Data.CursorNext()
 			return
 		}
 	}
@@ -513,7 +301,7 @@ func (e *EditBox) previousWord() {
 	// Rewind through normal characters (previous string) until a delimiter
 	// is reached
 	for !isDelimiter(*e.CursorChar()) {
-		if !e.CursorPrevious() {
+		if !e.Data.CursorPrevious() {
 			return
 		}
 	}
@@ -522,7 +310,7 @@ func (e *EditBox) previousWord() {
 		return
 	}
 
-	e.CursorNext()
+	e.Data.CursorNext()
 }
 
 func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
@@ -530,50 +318,49 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 		return false
 	}
 
-	oldCursorLine := e.cursorLine
-	oldCursorChar := e.cursorChar
+	oldCursor := e.Data.GetCursor()
 
 	handled := false
 
 	if !handled && ev.Key == termbox.KeyHome {
-		e.cursorChar = 0
+		e.Data.CursorBeginningOfLine()
 		handled = true
 	}
 
 	if !handled && ev.Key == termbox.KeyEnd {
-		e.cursorChar = len(e.Lines[e.cursorLine]) - 1
+		e.Data.CursorEndOfLine()
 		handled = true
 	}
 
 	if !handled && ev.Key == termbox.KeyArrowLeft {
-		e.cursorChar--
+		e.Data.CursorPrevious()
 		handled = true
 	}
 
 	if !handled && ev.Key == termbox.KeyArrowRight {
-		e.cursorChar++
+		e.Data.CursorNext()
 		handled = true
 	}
 
 	if !handled && ev.Key == termbox.KeyArrowUp {
-		e.cursorLine--
+		e.Data.LinePrevious()
 		handled = true
 	}
 
 	if !handled && ev.Key == termbox.KeyArrowDown {
-		e.cursorLine++
+		e.Data.LineNext()
 		handled = true
 	}
 
 	if !handled && ev.Key == termbox.KeyDelete {
-		e.Delete()
+		e.Data.Delete()
 		handled = true
 	}
 
 	if !handled && (ev.Key == termbox.KeyBackspace ||
 			ev.Key == termbox.KeyBackspace2) {
-		if e.CursorPrevious() {
-			e.Delete()
+		if e.Data.CursorPrevious() {
+			e.Data.Delete()
 		}
 		handled = true
 	}
@@ -584,21 +371,10 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 		handled = e.handleInsertModeEvent(ev)
 	}
 
-	// Clamp the cursor to its constraints
-	e.cursorLine = max(0, e.cursorLine)
-	e.cursorLine = min(len(e.Lines) - 1, e.cursorLine)
-
-	e.cursorChar = max(0, e.cursorChar)
-
-	minChar := len(e.Lines[e.cursorLine])
-	if e.mode == CommandMode && minChar > 0 {
-	    minChar--
-	}
-
-	e.cursorChar = min(minChar, e.cursorChar)
+	e.Data.ClampCursor()
 
 	// Detect and fire OnCursorMoved
-	if oldCursorLine != e.cursorLine || oldCursorChar != e.cursorChar {
+	if oldCursor != e.Data.GetCursor() {
 		e.fireCursorMoved()
 	}
 
@@ -612,6 +388,7 @@ func (e *EditBox) fireCursorMoved() {
 }
 
 func (e *EditBox) handleChord_d() bool {
+/*
 	if e.chord[1].Ch == 'd' {
 		// Delete current line
 		if len(e.Lines) == 0 {
@@ -638,11 +415,12 @@ func (e *EditBox) handleChord_d() bool {
 
 		e.fireCursorMoved()
 	}
-
+*/
 	return true
 }
 
 func (e *EditBox) handleChord_c() bool {
+    /*
 	if e.chord[1].Ch == 'w' {
 		// Delete current word
 		deleteClass := getCharClass(e.CursorChar().Char)
@@ -662,15 +440,14 @@ func (e *EditBox) handleChord_c() bool {
 
 		e.mode = InsertMode
 	}
+	*/
 
 	return true
 }
 
 func (e *EditBox) handleChord_g() bool {
 	if e.chord[1].Ch == 'g' {
-		// Jump to beginning of file
-		e.cursorLine = 0
-		e.cursorChar = 0
+		e.Data.CursorBeginning()
 	}
 
 	return true
@@ -714,25 +491,25 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 
 	switch ev.Ch {
 	case 'h':
-		e.cursorChar--
+		e.Data.CursorPrevious()
 		return true
 	case 'l':
-		e.cursorChar++
+		e.Data.CursorNext()
 		return true
 	case 'k':
-		e.cursorLine--
+		e.Data.LinePrevious()
 		return true
 	case 'j':
-		e.cursorLine++
+		e.Data.LineNext()
 		return true
 	case '0':
-		e.cursorChar = 0
+		e.Data.CursorBeginningOfLine()
 		return true
 	case 'i':
 		e.mode = InsertMode
 		return true
 	case 'A':
-		e.cursorChar = len(e.Lines[e.cursorLine])
+		e.Data.CursorEndOfLine()
 		e.mode = InsertMode
 		return true
 	case 'w':
@@ -742,10 +519,11 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 		e.previousWord()
 		return true
 	case 'x':
-		e.Delete()
+		e.Data.Delete()
 		return true
 	case 'o':
 		// Make room for another line
+		/*
 		e.Lines = append(e.Lines, []Char {})
 
 		// Shift lines after cursorLine down
@@ -760,10 +538,13 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 		e.cursorLine++
 		e.cursorChar = 0
 		e.mode = InsertMode
+		*/
 		return true
 	case 'G':
+	    /*
 		e.cursorLine = len(e.Lines) - 1
 		e.cursorChar = len(e.Lines[e.cursorLine]) - 1
+		*/
 		return true
 	}
 
@@ -773,7 +554,7 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 	if ev.Key == termbox.KeyTab {
 		e.Insert("    ")
-		e.cursorChar += tabWidth
+		//e.cursorChar += tabWidth
 		return true
 	}
 
@@ -784,27 +565,27 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 
 	if ev.Key == termbox.KeyEsc {
 		e.mode = CommandMode
-		e.cursorChar--
+		e.Data.CursorPrevious()
 		return true
 	}
 
 	if renderableChar(ev) {
 		e.Insert(string(ev.Ch))
-		e.cursorChar++
+		e.Data.CursorNext()
 		return true
 	}
 
 	switch (ev.Key) {
 	case termbox.KeyEnter:
 		e.Insert("\n")
-		e.cursorLine++
-		e.cursorChar = 0
+		e.Data.LineNext()
+		e.Data.CursorBeginningOfLine()
 
 		return true
 
 	case termbox.KeySpace:
 		e.Insert(" ")
-		e.cursorChar++
+		e.Data.CursorNext()
 
 		return true
 
@@ -813,24 +594,6 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 	}
 
 	return false
-}
-
-func (e *EditBox) AllChars() []*Char {
-	ret := []*Char {}
-
-	for l := 0; l < len(e.Lines); l++ {
-		line := &e.Lines[l]
-
-		for c := 0; c < len(*line); c++ {
-			ret = append(ret, &(*line)[c])
-		}
-
-		ret = append(ret, &Char {
-			Char: '\n',
-		})
-	}
-
-	return ret
 }
 
 func BasicHighlighter(e *EditBox) {
@@ -842,7 +605,7 @@ func BasicHighlighter(e *EditBox) {
 
 	word := ""
 
-	chars := e.AllChars()
+	chars := e.Data.AllChars()
 
 	// Loop over all chars plus one. i is always the index of 'next' so
 	// the loop is basically running one char ahead. Run one extra time

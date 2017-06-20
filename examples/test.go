@@ -15,6 +15,7 @@ func main() {
 
 	edit1 := tui.EditBox {
 		Bounds: tui.Rect { Left: 2, Top: 6, Width: 30, Height: 10 },
+		Data: &tui.StringArray{},
 	}
 
 	edit1.SetText("abcdefgh")
