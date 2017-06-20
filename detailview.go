@@ -243,6 +243,8 @@ func (d *DetailView) HandleEvent(ev escapebox.Event) bool {
 
 	oldCursorRow := d.cursorRow
 	oldCursorCol := d.cursorCol
+	oldScrollRow := d.scrollRow
+	oldScrollCol := d.scrollCol
 
 	handled := false
 
@@ -288,7 +290,8 @@ func (d *DetailView) HandleEvent(ev escapebox.Event) bool {
 		handled = true
 	}
 
-	if oldCursorRow != d.cursorRow || oldCursorCol != d.cursorCol {
+	if oldCursorRow != d.cursorRow || oldCursorCol != d.cursorCol ||
+	   oldScrollRow != d.scrollRow || oldScrollCol != d.scrollCol {
 		d.updateScroll()
 	}
 
