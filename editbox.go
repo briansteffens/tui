@@ -1,15 +1,18 @@
 package tui
 
 import (
+	"os"
+	"fmt"
 	"errors"
 	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
 )
 
 const (
-	CommandMode = 0
-	InsertMode  = 1
-	tabWidth    = 4
+	CommandMode    = 0
+	InsertMode     = 1
+	VisualLineMode = 2
+	tabWidth       = 4
 )
 
 type CharClass int
@@ -59,12 +62,13 @@ type EditBox struct {
 	Highlighter   Highlighter
 	Dialect       Dialect
 
-	cursorLine    int
-	cursorChar    int
-	scroll        int
-	focus         bool
-	mode          int
-	chord         []escapebox.Event
+	cursorLine      int
+	cursorChar      int
+	scroll          int
+	focus           bool
+	mode            int
+	chord           []escapebox.Event
+	visualLineStart int
 }
 
 var whitespace []rune = []rune { ' ', '\t' }
@@ -193,6 +197,17 @@ func (e *EditBox) Render() {
 	textWidth := e.Bounds.Width
 	textHeight := e.Bounds.Height - 1 // Bottom line free for modes/notices
 
+	visualLineStart := e.visualLineStart
+	visualLineStop := e.cursorLine
+	if visualLineStart > visualLineStop {
+		temp := visualLineStart
+		visualLineStart = visualLineStop
+		visualLineStop = temp
+	}
+
+	virtualVisualLineStart := -1
+	virtualVisualLineStop := -1
+
 	// Generate virtual lines and map the cursor to them.
 	virtualLines := make([][]Char, 0)
 
@@ -208,10 +223,18 @@ func (e *EditBox) Render() {
 			cursorCol = e.cursorChar % textWidth
 		}
 
+		if e.mode == VisualLineMode && lineIndex == visualLineStart {
+			virtualVisualLineStart = len(virtualLines)
+		}
+
 		for i := 0; i < virtualLineCount; i++ {
 			start := i * textWidth
 			stop := min(len(line), (i + 1) * textWidth)
 			virtualLines = append(virtualLines, line[start:stop])
+		}
+
+		if e.mode == VisualLineMode && lineIndex == visualLineStop {
+			virtualVisualLineStop = len(virtualLines) - 1
 		}
 	}
 
@@ -227,13 +250,36 @@ func (e *EditBox) Render() {
 
 	for l := e.scroll; l < scrollEnd; l++ {
 		for c, ch := range virtualLines[l] {
+			fg := ch.Fg
+			bg := ch.Bg
+
+			if l >= virtualVisualLineStart &&
+				l <= virtualVisualLineStop {
+				bg = termbox.ColorYellow
+				fg = termbox.ColorBlack
+			}
+
 			termbox.SetCell(e.Bounds.Left + c,
 					e.Bounds.Top + l - e.scroll, ch.Char,
-					ch.Fg, ch.Bg)
+					fg, bg)
 		}
 	}
 
 	if e.focus {
+		f, err := os.OpenFile("out", os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			panic(err)
+		}
+
+		defer f.Close()
+
+		s := fmt.Sprintf("%d, %d\n", e.Bounds.Left + cursorCol,
+			e.Bounds.Top + cursorRow - e.scroll)
+
+		if _, err = f.WriteString(s); err != nil {
+			panic(err)
+		}
+
 		termbox.SetCursor(e.Bounds.Left + cursorCol,
 				  e.Bounds.Top + cursorRow - e.scroll)
 	}
@@ -578,10 +624,18 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 		handled = true
 	}
 
-	if !handled && e.mode == CommandMode {
-		handled = e.handleCommandModeEvent(ev)
-	} else if !handled && e.mode == InsertMode {
-		handled = e.handleInsertModeEvent(ev)
+	if !handled {
+		switch e.mode {
+		case CommandMode:
+			handled = e.handleCommandModeEvent(ev)
+			break
+		case InsertMode:
+			handled = e.handleInsertModeEvent(ev)
+			break
+		case VisualLineMode:
+			handled = e.handleVisualLineModeEvent(ev)
+			break
+		}
 	}
 
 	// Clamp the cursor to its constraints
@@ -611,32 +665,50 @@ func (e *EditBox) fireCursorMoved() {
 	}
 }
 
+func (e *EditBox) deleteLines(start, stop int) {
+	if start > stop {
+		panic("Can't delete this range")
+	}
+
+	if start < 0 || stop < 0 ||
+	   start >= len(e.Lines) || stop >= len(e.Lines) {
+		panic("Line deletion out of range")
+	}
+
+	toDelete := stop - start + 1
+
+	if toDelete > len(e.Lines) {
+		panic("Can't delete more lines than currently exist")
+	}
+
+	newSize := len(e.Lines) - toDelete
+
+	if newSize == 0 {
+		e.Lines = make([][]Char, 1)
+		e.Lines[0] = []Char{}
+		return
+	}
+
+	newLines := make([][]Char, len(e.Lines) - toDelete)
+
+	dst := 0
+	for src := 0; src < len(e.Lines); src++ {
+		if src >= start && src <= stop {
+			continue
+		}
+
+		newLines[dst] = e.Lines[src]
+		dst++
+	}
+
+	e.Lines = newLines
+	e.fireCursorMoved()
+}
+
 func (e *EditBox) handleChord_d() bool {
 	if e.chord[1].Ch == 'd' {
 		// Delete current line
-		if len(e.Lines) == 0 {
-			return true
-		}
-
-		if len(e.Lines) == 1 {
-			e.Lines[0] = []Char {}
-			e.fireCursorMoved()
-			return true
-		}
-
-		newLines := make([][]Char, len(e.Lines) - 1)
-
-		for i := 0; i < e.cursorLine; i++ {
-			newLines[i] = e.Lines[i]
-		}
-
-		for i := e.cursorLine + 1; i < len(e.Lines); i++ {
-			newLines[i - 1] = e.Lines[i]
-		}
-
-		e.Lines = newLines
-
-		e.fireCursorMoved()
+		e.deleteLines(e.cursorLine, e.cursorLine)
 	}
 
 	return true
@@ -765,6 +837,10 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 		e.cursorLine = len(e.Lines) - 1
 		e.cursorChar = len(e.Lines[e.cursorLine]) - 1
 		return true
+	case 'V':
+		e.mode = VisualLineMode
+		e.visualLineStart = e.cursorLine
+		return true
 	}
 
 	return false
@@ -809,6 +885,37 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 		return true
 
 	case termbox.KeyTab:
+		return true
+	}
+
+	return false
+}
+
+func (e *EditBox) handleVisualLineModeEvent(ev escapebox.Event) bool {
+	if ev.Key == termbox.KeyEsc {
+		e.mode = CommandMode
+		return true
+	}
+
+	switch ev.Ch {
+	case 'k':
+		e.cursorLine--
+		return true
+	case 'j':
+		e.cursorLine++
+		return true
+	case 'd':
+		start := e.visualLineStart
+		stop := e.cursorLine
+
+		if start > stop {
+			temp := start
+			start = stop
+			stop = temp
+		}
+
+		e.deleteLines(start, stop)
+		e.mode = CommandMode
 		return true
 	}
 
