@@ -37,6 +37,16 @@ type Char struct {
 	Escaped bool
 }
 
+func (c *Char) clone() Char {
+	return Char {
+		Char:    c.Char,
+		Fg:      c.Fg,
+		Bg:      c.Bg,
+		Quote:   c.Quote,
+		Escaped: c.Escaped,
+	}
+}
+
 const colorKeyword termbox.Attribute = termbox.ColorBlue
 const colorType    termbox.Attribute = termbox.ColorRed
 
@@ -69,6 +79,7 @@ type EditBox struct {
 	mode            int
 	chord           []escapebox.Event
 	visualLineStart int
+	clipBoard       [][]Char
 }
 
 var whitespace []rune = []rune { ' ', '\t' }
@@ -665,7 +676,7 @@ func (e *EditBox) fireCursorMoved() {
 	}
 }
 
-func (e *EditBox) deleteLines(start, stop int) {
+func (e *EditBox) validateLineRange(start, stop int) {
 	if start > stop {
 		panic("Can't delete this range")
 	}
@@ -675,12 +686,15 @@ func (e *EditBox) deleteLines(start, stop int) {
 		panic("Line deletion out of range")
 	}
 
-	toDelete := stop - start + 1
-
-	if toDelete > len(e.Lines) {
+	if stop - start + 1 > len(e.Lines) {
 		panic("Can't delete more lines than currently exist")
 	}
+}
 
+func (e *EditBox) deleteLines(start, stop int) {
+	e.validateLineRange(start, stop)
+
+	toDelete := stop - start + 1
 	newSize := len(e.Lines) - toDelete
 
 	if newSize == 0 {
@@ -705,9 +719,49 @@ func (e *EditBox) deleteLines(start, stop int) {
 	e.fireCursorMoved()
 }
 
+func (e *EditBox) copyLinesToClipBoard(start, stop int) {
+	e.validateLineRange(start, stop)
+
+	e.clipBoard = [][]Char{}
+
+	for i := start; i <= stop; i++ {
+		line := []Char{}
+
+		for _, c := range e.Lines[i] {
+			line = append(line, c.clone())
+		}
+
+		e.clipBoard = append(e.clipBoard, line)
+	}
+}
+
+func (e *EditBox) paste() {
+	if len(e.clipBoard) == 0 {
+		return
+	}
+
+	newLines := [][]Char{}
+
+	for i := 0; i <= e.cursorLine; i++ {
+		newLines = append(newLines, e.Lines[i])
+	}
+
+	for _, l := range e.clipBoard {
+		newLines = append(newLines, l)
+	}
+
+	for i := e.cursorLine + 1; i < len(e.Lines); i++ {
+		newLines = append(newLines, e.Lines[i])
+	}
+
+	e.Lines = newLines
+	e.cursorLine++
+}
+
 func (e *EditBox) handleChord_d() bool {
 	if e.chord[1].Ch == 'd' {
 		// Delete current line
+		e.copyLinesToClipBoard(e.cursorLine, e.cursorLine)
 		e.deleteLines(e.cursorLine, e.cursorLine)
 	}
 
@@ -841,6 +895,9 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 		e.mode = VisualLineMode
 		e.visualLineStart = e.cursorLine
 		return true
+	case 'p':
+		e.paste()
+		return true
 	}
 
 	return false
@@ -914,6 +971,7 @@ func (e *EditBox) handleVisualLineModeEvent(ev escapebox.Event) bool {
 			stop = temp
 		}
 
+		e.copyLinesToClipBoard(start, stop)
 		e.deleteLines(start, stop)
 		e.mode = CommandMode
 		return true
