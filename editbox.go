@@ -961,7 +961,7 @@ func (e *EditBox) handleVisualLineModeEvent(ev escapebox.Event) bool {
 	case 'j':
 		e.cursorLine++
 		return true
-	case 'd':
+	case 'd', 'y':
 		start := e.visualLineStart
 		stop := e.cursorLine
 
@@ -972,7 +972,11 @@ func (e *EditBox) handleVisualLineModeEvent(ev escapebox.Event) bool {
 		}
 
 		e.copyLinesToClipBoard(start, stop)
-		e.deleteLines(start, stop)
+
+		if ev.Ch == 'd' {
+			e.deleteLines(start, stop)
+		}
+
 		e.mode = CommandMode
 		return true
 	}
