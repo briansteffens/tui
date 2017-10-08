@@ -929,9 +929,16 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 
 	switch (ev.Key) {
 	case termbox.KeyEnter:
-		e.Insert("\n")
+		insert := "\n"
+		for _, c := range e.Lines[e.cursorLine] {
+			if getCharClass(c.Char) != ClassWhiteSpace {
+				break
+			}
+
+			insert += string(c.Char)
+		}
+		e.Insert(insert)
 		e.cursorLine++
-		e.cursorChar = 0
 
 		return true
 
