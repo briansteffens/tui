@@ -101,5 +101,4 @@ func (c *Container) Refresh() {
 	}
 
 	termbox.Flush()
-	termbox.Sync()
 }
