@@ -747,6 +747,12 @@ func (e *EditBox) deleteLines(start, stop int) {
 	}
 
 	e.Lines = newLines
+
+	e.cursorLine = start
+	if e.cursorLine >= len(e.Lines) {
+		e.cursorLine = len(e.Lines) - 1
+	}
+
 	e.fireCursorMoved()
 }
 
