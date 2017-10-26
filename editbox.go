@@ -83,7 +83,10 @@ type EditBox struct {
 }
 
 var whitespace []rune = []rune { ' ', '\t' }
-var symbols []rune = []rune { '!', '@', '#', '$', '%', '^', '*', '(', ')' }
+var symbols []rune = []rune {
+	'!', '@', '#', '$', '%', '^', '*', '(', ')', ';', '[', ']', '<', '>',
+	':', '-', '=', ',', '.',
+}
 
 func isRune(r rune, in []rune) bool {
 	for _, i := range in {
@@ -532,54 +535,82 @@ func (e *EditBox) cursorAtEnd() bool {
 	       e.cursorChar >= len(e.Lines[e.cursorLine]) - 1
 }
 
-func isDelimiter(c Char) bool {
-	return c.Char == ' ' || c.Char == '\t' || c.Char == '\n'
+func (e *EditBox) cursorCharClass() CharClass {
+	return getCharClass(e.CursorChar().Char)
 }
 
 func (e *EditBox) nextWord() {
-	for !isDelimiter(*e.CursorChar()) {
-		e.CursorNext()
+	startLine := e.cursorLine
+	startClass := e.cursorCharClass()
+
+	// Skip over characters until the character class changes
+	if startClass != ClassWhiteSpace {
+		for (e.cursorCharClass() == startClass ||
+		     e.CursorChar().Char == '\n') &&
+		    startLine == e.cursorLine {
+			if !e.CursorNext() {
+				break
+			}
+		}
 	}
 
-	for e.CursorNext() && isDelimiter(*e.CursorChar()) &&
-	    e.CursorChar().Char != '\n' {
+	// Skip over any trailing whitespace
+	for e.cursorCharClass() == ClassWhiteSpace &&
+	    startLine == e.cursorLine {
+		if !e.CursorNext() {
+			break
+		}
 	}
 }
 
+func (e *EditBox) CursorAtBeginning() bool {
+	return e.cursorLine == 0 && e.cursorChar == 0
+}
+
 func (e *EditBox) previousWord() {
+	// Rewind one character
 	if !e.CursorPrevious() {
 		return
 	}
 
-	// Rewind through delimiters until we reach a normal character or \n
-	for isDelimiter(*e.CursorChar()) && e.CursorChar().Char != '\n' {
-		if !e.CursorPrevious() {
-			return
-		}
-	}
-
+	// Rewind again if we see a newline next
 	if e.CursorChar().Char == '\n' {
-		e.CursorPrevious()
-
-		if e.CursorChar().Char == '\n' {
-			e.CursorNext()
-			return
-		}
-	}
-
-	// Rewind through normal characters (previous string) until a delimiter
-	// is reached
-	for !isDelimiter(*e.CursorChar()) {
 		if !e.CursorPrevious() {
 			return
 		}
 	}
 
-	if e.cursorAtBeginning() {
-		return
+	startLine := e.cursorLine
+
+	// Rewind over any whitespace
+	for e.cursorCharClass() == ClassWhiteSpace &&
+	    startLine == e.cursorLine {
+		if !e.CursorPrevious() {
+			break
+		}
 	}
 
-	e.CursorNext()
+	startClass := e.cursorCharClass()
+
+	// Rewind until the character class changes
+	if startClass != ClassWhiteSpace {
+		for (e.cursorCharClass() == startClass ||
+		     e.CursorChar().Char == '\n') &&
+		    startLine == e.cursorLine {
+			if !e.CursorPrevious() {
+				break
+			}
+		}
+	}
+
+	// Unless we've reached the beginning of the buffer, undo the last
+	// rewind. The rest of the function is basically peeking ahead one
+	// character, so undo that here.
+	if !e.CursorAtBeginning() {
+		if !e.CursorNext() {
+			return
+		}
+	}
 }
 
 func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
