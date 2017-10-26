@@ -261,6 +261,13 @@ func (d *DetailView) HandleEvent(ev escapebox.Event) bool {
 	case 'l':
 		d.cursorCol++
 		handled = true
+	case '+', '=':
+		d.Columns[d.cursorCol].Width++
+		handled = true
+	case '-', '_':
+		if d.Columns[d.cursorCol].Width > 1 {
+			d.Columns[d.cursorCol].Width--
+		}
 	}
 
 	switch ev.Key {
