@@ -280,7 +280,8 @@ func (e *EditBox) Render() {
 	}
 
 	if e.focus {
-		f, err := os.OpenFile("out", os.O_APPEND|os.O_WRONLY, 0600)
+		f, err := os.OpenFile("out",
+			os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
 			panic(err)
 		}
@@ -811,6 +812,10 @@ func (e *EditBox) handleChord_c() bool {
 		deleteClass := getCharClass(e.CursorChar().Char)
 
 		for {
+			if e.CursorChar().Char == '\n' {
+				break
+			}
+
 			e.Delete()
 
 			if getCharClass(e.CursorChar().Char) != deleteClass {
