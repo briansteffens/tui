@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"os"
-	"fmt"
 	"errors"
 	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
@@ -280,21 +278,6 @@ func (e *EditBox) Render() {
 	}
 
 	if e.focus {
-		f, err := os.OpenFile("out",
-			os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-		if err != nil {
-			panic(err)
-		}
-
-		defer f.Close()
-
-		s := fmt.Sprintf("%d, %d\n", e.Bounds.Left + cursorCol,
-			e.Bounds.Top + cursorRow - e.scroll)
-
-		if _, err = f.WriteString(s); err != nil {
-			panic(err)
-		}
-
 		termbox.SetCursor(e.Bounds.Left + cursorCol,
 				  e.Bounds.Top + cursorRow - e.scroll)
 	}
@@ -918,7 +901,6 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 
 		// Shift lines after cursorLine down
 		for i := len(e.Lines) - 2; i > e.cursorLine; i-- {
-			Log("%d", i)
 			e.Lines[i + 1] = e.Lines[i]
 		}
 

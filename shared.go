@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"os"
 	"fmt"
 	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
@@ -105,19 +104,8 @@ type Focusable interface {
 	HandleEvent(escapebox.Event) bool
 }
 
-var outFile *os.File
-
-func Log(format string, args ...interface{}) {
-	outFile.WriteString(fmt.Sprintf(format + "\n", args...))
-}
-
 func Init() {
 	var err error
-
-	outFile, err = os.Create("outfile")
-	if err != nil {
-		panic(err)
-	}
 
 	err = termbox.Init()
 	if err != nil {
@@ -135,7 +123,6 @@ func Init() {
 func Close() {
 	escapebox.Close()
 	termbox.Close()
-	outFile.Close()
 }
 
 func MainLoop(c *Container) {
