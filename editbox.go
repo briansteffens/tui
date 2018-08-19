@@ -80,6 +80,10 @@ type EditBox struct {
 	clipBoard       [][]Char
 }
 
+func (e *EditBox) GetBounds() *Rect {
+	return &e.Bounds
+}
+
 var whitespace []rune = []rune { ' ', '\t' }
 var symbols []rune = []rune {
 	'!', '@', '#', '$', '%', '^', '*', '(', ')', ';', '[', ']', '<', '>',
@@ -205,7 +209,7 @@ func (e *EditBox) SetText(raw string) {
 	e.fireTextChanged()
 }
 
-func (e *EditBox) Render() {
+func (e *EditBox) Draw(target *DrawTarget) {
 	textWidth := e.Bounds.Width
 	textHeight := e.Bounds.Height - 1 // Bottom line free for modes/notices
 
@@ -271,20 +275,18 @@ func (e *EditBox) Render() {
 				fg = termbox.ColorBlack
 			}
 
-			termbox.SetCell(e.Bounds.Left + c,
-					e.Bounds.Top + l - e.scroll, ch.Char,
-					fg, bg)
+			target.SetCell(c, l - e.scroll, fg, bg, ch.Char)
 		}
 	}
 
 	if e.focus {
 		termbox.SetCursor(e.Bounds.Left + cursorCol,
-				  e.Bounds.Top + cursorRow - e.scroll)
+				e.Bounds.Top + cursorRow - e.scroll)
 	}
 
 	if e.mode == InsertMode {
-		termPrint(e.Bounds.Left, e.Bounds.Bottom(),
-			  "-- INSERT --")
+		target.Print(0, e.Bounds.Height - 1, termbox.ColorDefault,
+				termbox.ColorDefault, "-- INSERT --")
 	}
 }
 

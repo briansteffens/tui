@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"fmt"
 	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
@@ -28,43 +29,6 @@ const (
 func renderableChar(ev escapebox.Event) bool {
 	return ev.Type == termbox.EventKey && ev.Key == 0 && ev.Ch != 0
 }
-
-func setCell(x, y int, r rune) {
-	termbox.SetCell(x, y, r, termbox.ColorWhite, termbox.ColorBlack)
-}
-
-func termPrintf(x, y int, format string, args ...interface{}) {
-	termPrint(x, y, fmt.Sprintf(format, args...))
-}
-
-func termPrintColorf(x, y int, fg, bg termbox.Attribute, format string,
-		     args ...interface{}) {
-	termPrintColor(x, y, fg, bg, fmt.Sprintf(format, args...))
-}
-
-func termPrint(x, y int, content string) {
-	termPrintColor(x, y, termbox.ColorWhite, termbox.ColorBlack, content)
-}
-
-func termPrintColor(x, y int, fg, bg termbox.Attribute, content string) {
-	for i, c := range content {
-		termbox.SetCell(x + i, y, c, fg, bg)
-	}
-}
-
-type Rect struct {
-	Left, Top, Width, Height int
-}
-
-func (r *Rect) Right() int {
-	return r.Left + r.Width - 1
-}
-
-func (r *Rect) Bottom() int {
-	return r.Top + r.Height - 1
-}
-
-type BorderRenderer func(c Control)
 
 type KeyBinding struct {
 	Seq escapebox.Sequence
@@ -94,7 +58,8 @@ func matchBinding(ev escapebox.Event, kb KeyBinding) bool {
 }
 
 type Control interface {
-	Render()
+	GetBounds() *Rect
+	Draw(*DrawTarget)
 }
 
 type Focusable interface {
@@ -105,9 +70,7 @@ type Focusable interface {
 }
 
 func Init() {
-	var err error
-
-	err = termbox.Init()
+	err := termbox.Init()
 	if err != nil {
 		panic(err)
 	}
@@ -116,13 +79,36 @@ func Init() {
 	termbox.SetOutputMode(termbox.Output256)
 
 	escapebox.Init()
-
 	escapebox.Register(SeqShiftTab, 91, 90)
 }
 
 func Close() {
 	escapebox.Close()
 	termbox.Close()
+}
+
+func log(message string, args ...interface{}) {
+	mode := os.O_APPEND | os.O_WRONLY | os.O_CREATE
+	f, err := os.OpenFile(".tui-log", mode, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	defer f.Close()
+
+	if _, err = fmt.Fprintf(f, message, args...); err != nil {
+		panic(err)
+	}
+
+	if _, err = fmt.Fprintln(f); err != nil {
+		panic(err)
+	}
+}
+
+func Refresh(root *Container) {
+	target := fullTerminalDrawTarget()
+	root.Draw(target)
+	termbox.Flush()
 }
 
 func MainLoop(c *Container) {
@@ -133,7 +119,7 @@ func MainLoop(c *Container) {
 		c.ResizeHandler()
 	}
 
-	c.Refresh()
+	Refresh(c)
 
 	loop: for {
 		ev := escapebox.PollEvent()
@@ -173,6 +159,6 @@ func MainLoop(c *Container) {
 			handled = c.HandleEvent(c, ev)
 		}
 
-		c.Refresh()
+		Refresh(c)
 	}
 }
