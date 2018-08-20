@@ -8,15 +8,18 @@ import (
 type ButtonClickEvent func(*Button)
 
 type Button struct {
-	Bounds       Rect
-	Text         string
-	focus        bool
-	ClickHandler ButtonClickEvent
+	Bounds		Rect
+	Text		string
+	focus		bool
+	ClickHandler	ButtonClickEvent
 }
 
-func (b *Button) Render() {
-	count := min(len(b.Text), b.Bounds.Width - 4)
-	termPrintf(b.Bounds.Left + 2, b.Bounds.Top + 1, b.Text[0:count])
+func (b *Button) GetBounds() *Rect {
+	return &b.Bounds
+}
+
+func (b *Button) Draw(target *DrawTarget) {
+	target.Print(2, 1, termbox.ColorWhite, termbox.ColorBlack, b.Text)
 
 	if b.focus {
 		termbox.SetCursor(b.Bounds.Left + 1, b.Bounds.Top + 1)

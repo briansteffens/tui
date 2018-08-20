@@ -1,17 +1,21 @@
 package tui
 
 import (
-	//"fmt"
 	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
 )
 
 type TextBox struct {
-	Bounds     Rect
-	Value      string
-	cursor     int
-	scroll     int
-	focus      bool
+	Bounds		Rect
+	Value		string
+
+	cursor		int
+	scroll		int
+	focus		bool
+}
+
+func (t *TextBox) GetBounds() *Rect {
+	return &t.Bounds
 }
 
 func (t *TextBox) maxVisibleChars() int {
@@ -26,13 +30,13 @@ func (t *TextBox) lastVisible() int {
 	return t.scroll + t.visibleChars() - 1
 }
 
-func (t *TextBox) Render() {
-	termPrint(t.Bounds.Left + 1, t.Bounds.Top + 1,
-		  t.Value[t.scroll:t.lastVisible() + 1])
+func (t *TextBox) Draw(target *DrawTarget) {
+	target.Print(1, 1, termbox.ColorWhite, termbox.ColorBlack,
+			t.Value[t.scroll:t.lastVisible() + 1])
 
 	if t.focus {
 		termbox.SetCursor(t.Bounds.Left + 1 + t.cursor - t.scroll,
-				  t.Bounds.Top + 1)
+				t.Bounds.Top + 1)
 	}
 }
 

@@ -1,29 +1,30 @@
 package tui
 
 import (
-	"fmt"
 	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
 )
 
 type CheckBox struct {
-	Bounds     Rect
-	Text       string
-	Checked    bool
-	focus      bool
+	Bounds		Rect
+	Text		string
+	Checked		bool
+	focus		bool
 }
 
-func (c *CheckBox) Render() {
+func (c *CheckBox) GetBounds() *Rect {
+	return &c.Bounds
+}
+
+func (c *CheckBox) Draw(target *DrawTarget) {
 	checkContent := " "
 
 	if c.Checked {
 		checkContent = "X"
 	}
 
-	s := fmt.Sprintf("[%s] %s", checkContent, c.Text)
-
-	count := min(len(s), c.Bounds.Width)
-	termPrintf(c.Bounds.Left, c.Bounds.Top, s[0:count])
+	target.Print(0, 0, termbox.ColorWhite, termbox.ColorBlack,
+		"[%s] %s", checkContent, c.Text)
 
 	if c.focus {
 		termbox.SetCursor(c.Bounds.Left + 1, c.Bounds.Top)

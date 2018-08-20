@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
 )
 
@@ -9,15 +8,15 @@ type ResizeEvent func()
 type EventHandler func(c *Container, ev escapebox.Event) bool
 
 type Container struct {
-	Controls                []Control
-	Focused                 Focusable
-	ResizeHandler           ResizeEvent
-	Width                   int
-	Height                  int
-	KeyBindingFocusNext     KeyBinding
-	KeyBindingFocusPrevious KeyBinding
-	KeyBindingExit          KeyBinding
-	HandleEvent             EventHandler
+	Controls		[]Control
+	Focused			Focusable
+	ResizeHandler		ResizeEvent
+	Width			int
+	Height			int
+	KeyBindingFocusNext	KeyBinding
+	KeyBindingFocusPrevious	KeyBinding
+	KeyBindingExit		KeyBinding
+	HandleEvent		EventHandler
 }
 
 func (c *Container) focus(f Focusable) {
@@ -93,12 +92,15 @@ func (c *Container) FocusPrevious() {
 	}
 }
 
-func (c *Container) Refresh() {
-	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+func (c *Container) Draw(target *DrawTarget) {
+	for _, child := range c.Controls {
+		childBounds := child.GetBounds()
+		childContext, err := target.Slice(childBounds)
 
-	for _, v := range c.Controls {
-		v.Render()
+		if err != nil {
+			panic(err)
+		}
+
+		child.Draw(childContext)
 	}
-
-	termbox.Flush()
 }

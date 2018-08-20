@@ -24,6 +24,10 @@ type DetailView struct {
 	SelectedBg termbox.Attribute
 }
 
+func (d *DetailView) GetBounds() *Rect {
+	return &d.Bounds
+}
+
 func (d *DetailView) Reset() {
 	d.scrollCol = 0
 	d.scrollRow = 0
@@ -133,9 +137,9 @@ func (d *DetailView) totalWidth() int {
 	return ret
 }
 
-func (d *DetailView) Render() {
-	top := d.Bounds.Top
-	left := d.Bounds.Left
+func (d *DetailView) Draw(target *DrawTarget) {
+	top := 0
+	left := 0
 
 	firstCol, firstOffset := d.firstVisibleCol()
 	lastCol, lastOffset := d.lastVisibleCol()
@@ -161,8 +165,7 @@ func (d *DetailView) Render() {
 
 		maxLen = min(maxLen, d.viewWidth())
 
-		termPrintColorf(left, top,
-				termbox.ColorWhite | termbox.AttrBold,
+		target.Print(left, top, termbox.ColorWhite | termbox.AttrBold,
 				termbox.ColorBlack, renderValue(name, maxLen))
 
 		left += col.Width
@@ -173,7 +176,7 @@ func (d *DetailView) Render() {
 	}
 
 	for r := d.scrollRow; r < d.lastVisibleRow(); r++ {
-		left = d.Bounds.Left
+		left = 0
 		top++
 
 		rowColor := d.RowBg
@@ -220,8 +223,8 @@ func (d *DetailView) Render() {
 				val = val + " "
 			}
 
-			termPrintColorf(left, top, termbox.ColorWhite,
-					colColor, val)
+			target.Print(left, top, termbox.ColorWhite, colColor,
+					val)
 
 			left += col.Width
 
