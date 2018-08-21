@@ -137,7 +137,7 @@ func (d *DetailView) totalWidth() int {
 	return ret
 }
 
-func (d *DetailView) Draw(target IDrawTarget) {
+func (d *DetailView) Draw(target DrawTarget) {
 	top := 0
 	left := 0
 

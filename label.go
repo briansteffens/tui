@@ -13,6 +13,6 @@ func (l *Label) GetBounds() *Rect {
 	return &l.Bounds
 }
 
-func (l *Label) Draw(target IDrawTarget) {
+func (l *Label) Draw(target DrawTarget) {
 	target.Print(0, 0, termbox.ColorWhite, termbox.ColorBlack, l.Text)
 }

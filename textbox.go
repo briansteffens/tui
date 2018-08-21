@@ -30,7 +30,7 @@ func (t *TextBox) lastVisible() int {
 	return t.scroll + t.visibleChars() - 1
 }
 
-func (t *TextBox) Draw(target IDrawTarget) {
+func (t *TextBox) Draw(target DrawTarget) {
 	target.Print(1, 1, termbox.ColorWhite, termbox.ColorBlack,
 		t.Value[t.scroll:t.lastVisible()+1])
 
