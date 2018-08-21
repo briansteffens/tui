@@ -5,8 +5,8 @@ import (
 )
 
 type Label struct {
-	Bounds		Rect
-	Text		string
+	Bounds Rect
+	Text   string
 }
 
 func (l *Label) GetBounds() *Rect {

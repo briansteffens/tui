@@ -2,8 +2,8 @@ package tui
 
 import (
 	"errors"
-	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
+	"github.com/nsf/termbox-go"
 )
 
 const (
@@ -21,14 +21,14 @@ const (
 	ClassSymbol     = 2
 )
 
-const QuoteNone   rune = 0
+const QuoteNone rune = 0
 const QuoteSingle rune = '\''
 const QuoteDouble rune = '"'
 
 type Char struct {
-	Char    rune
-	Fg      termbox.Attribute
-	Bg      termbox.Attribute
+	Char rune
+	Fg   termbox.Attribute
+	Bg   termbox.Attribute
 
 	// Highlighter data
 	Quote   rune
@@ -36,7 +36,7 @@ type Char struct {
 }
 
 func (c *Char) clone() Char {
-	return Char {
+	return Char{
 		Char:    c.Char,
 		Fg:      c.Fg,
 		Bg:      c.Bg,
@@ -46,7 +46,7 @@ func (c *Char) clone() Char {
 }
 
 const colorKeyword termbox.Attribute = termbox.ColorBlue
-const colorType    termbox.Attribute = termbox.ColorRed
+const colorType termbox.Attribute = termbox.ColorRed
 
 type Token int
 
@@ -60,7 +60,7 @@ type Dialect func(string) Token
 
 type TextChangedEvent func(*EditBox)
 type CursorMovedEvent func(*EditBox)
-type Highlighter      func(*EditBox)
+type Highlighter func(*EditBox)
 
 type EditBox struct {
 	Bounds        Rect
@@ -84,8 +84,8 @@ func (e *EditBox) GetBounds() *Rect {
 	return &e.Bounds
 }
 
-var whitespace []rune = []rune { ' ', '\t' }
-var symbols []rune = []rune {
+var whitespace []rune = []rune{' ', '\t'}
+var symbols []rune = []rune{
 	'!', '@', '#', '$', '%', '^', '*', '(', ')', ';', '[', ']', '<', '>',
 	':', '-', '=', ',', '.',
 }
@@ -126,7 +126,7 @@ func (e *EditBox) CursorChar() *Char {
 	line := e.Lines[e.cursorLine]
 
 	if e.cursorChar == len(line) {
-		return &Char { Char: '\n' }
+		return &Char{Char: '\n'}
 	}
 
 	return &line[e.cursorChar]
@@ -160,7 +160,7 @@ func (e *EditBox) GetChar(index int) (*Char, error) {
 
 	// Implicit newline
 	if charIndex == len(line) {
-		return &Char { Char: '\n' }, nil
+		return &Char{Char: '\n'}, nil
 	}
 
 	return &line[charIndex], nil
@@ -188,13 +188,13 @@ func (e *EditBox) SetText(raw string) {
 	line := []Char{}
 
 	for i, c := range raw {
-		isEnd := i == len(raw) - 1
+		isEnd := i == len(raw)-1
 
 		if c != '\n' {
-			char := Char {
+			char := Char{
 				Char: c,
-				Fg: termbox.ColorWhite,
-				Bg: termbox.ColorBlack,
+				Fg:   termbox.ColorWhite,
+				Bg:   termbox.ColorBlack,
 			}
 
 			line = append(line, char)
@@ -231,11 +231,11 @@ func (e *EditBox) Draw(target *DrawTarget) {
 	cursorCol := 0
 
 	for lineIndex, line := range e.Lines {
-		virtualLineCount := len(line) / textWidth + 1
+		virtualLineCount := len(line)/textWidth + 1
 
 		if e.cursorLine == lineIndex {
 			cursorRow = len(virtualLines) +
-				    e.cursorChar / textWidth
+				e.cursorChar/textWidth
 			cursorCol = e.cursorChar % textWidth
 		}
 
@@ -245,7 +245,7 @@ func (e *EditBox) Draw(target *DrawTarget) {
 
 		for i := 0; i < virtualLineCount; i++ {
 			start := i * textWidth
-			stop := min(len(line), (i + 1) * textWidth)
+			stop := min(len(line), (i+1)*textWidth)
 			virtualLines = append(virtualLines, line[start:stop])
 		}
 
@@ -258,11 +258,11 @@ func (e *EditBox) Draw(target *DrawTarget) {
 		e.scroll = cursorRow
 	}
 
-	if cursorRow >= e.scroll + textHeight {
+	if cursorRow >= e.scroll+textHeight {
 		e.scroll = cursorRow - textHeight + 1
 	}
 
-	scrollEnd := min(len(virtualLines), e.scroll + textHeight)
+	scrollEnd := min(len(virtualLines), e.scroll+textHeight)
 
 	for l := e.scroll; l < scrollEnd; l++ {
 		for c, ch := range virtualLines[l] {
@@ -275,18 +275,18 @@ func (e *EditBox) Draw(target *DrawTarget) {
 				fg = termbox.ColorBlack
 			}
 
-			target.SetCell(c, l - e.scroll, fg, bg, ch.Char)
+			target.SetCell(c, l-e.scroll, fg, bg, ch.Char)
 		}
 	}
 
 	if e.focus {
-		termbox.SetCursor(e.Bounds.Left + cursorCol,
-				e.Bounds.Top + cursorRow - e.scroll)
+		termbox.SetCursor(e.Bounds.Left+cursorCol,
+			e.Bounds.Top+cursorRow-e.scroll)
 	}
 
 	if e.mode == InsertMode {
-		target.Print(0, e.Bounds.Height - 1, termbox.ColorDefault,
-				termbox.ColorDefault, "-- INSERT --")
+		target.Print(0, e.Bounds.Height-1, termbox.ColorDefault,
+			termbox.ColorDefault, "-- INSERT --")
 	}
 }
 
@@ -311,10 +311,10 @@ func (e *EditBox) fireTextChanged() {
 func (e *EditBox) insertAt(lineIndex, charIndex int, newText string) {
 	line := e.Lines[lineIndex]
 
-	pre  := line[0:charIndex]
+	pre := line[0:charIndex]
 	post := line[charIndex:len(line)]
 
-	newLines := [][]Char {}
+	newLines := [][]Char{}
 
 	newLine := make([]Char, len(pre))
 
@@ -326,12 +326,12 @@ func (e *EditBox) insertAt(lineIndex, charIndex int, newText string) {
 	// Copy the new text into place
 	for _, r := range newText {
 		if r != '\n' {
-			newLine = append(newLine, Char { Char: r })
+			newLine = append(newLine, Char{Char: r})
 			continue
 		}
 
 		newLines = append(newLines, newLine)
-		newLine = []Char {}
+		newLine = []Char{}
 	}
 
 	// Copy the post part of the line being inserted into
@@ -353,20 +353,20 @@ func (e *EditBox) insertAt(lineIndex, charIndex int, newText string) {
 	oldLinesLen := len(e.Lines)
 
 	// Make room at the end of the array
-	for i := 0; i < len(newLines) - 1; i++ {
-		e.Lines = append(e.Lines, []Char {})
+	for i := 0; i < len(newLines)-1; i++ {
+		e.Lines = append(e.Lines, []Char{})
 	}
 
 	// Shift post lines to the end of the array to make room for new lines
 	shiftDistance := len(newLines) - 1
 
-	for i := oldLinesLen - 1; i >= lineIndex + 1; i-- {
-		e.Lines[i + shiftDistance] = e.Lines[i]
+	for i := oldLinesLen - 1; i >= lineIndex+1; i-- {
+		e.Lines[i+shiftDistance] = e.Lines[i]
 	}
 
 	// Copy new lines into place
 	for i := 0; i < len(newLines); i++ {
-		e.Lines[lineIndex + i] = newLines[i]
+		e.Lines[lineIndex+i] = newLines[i]
 	}
 
 	e.fireTextChanged()
@@ -386,7 +386,7 @@ func (e *EditBox) Delete() bool {
 
 	// Delete from current line
 	if e.cursorChar < len(line) {
-		newLine := make([]Char, len(line) - 1)
+		newLine := make([]Char, len(line)-1)
 
 		j := 0
 		for i := 0; i < len(line); i++ {
@@ -404,14 +404,14 @@ func (e *EditBox) Delete() bool {
 		return true
 	}
 
-	if e.cursorLine == len(e.Lines) - 1 {
+	if e.cursorLine == len(e.Lines)-1 {
 		return true
 	}
 
 	// Cursor is on the implicit newline at the end of a line and there
 	// are more lines after it. Concat this and the next line.
-	nextLine := e.Lines[e.cursorLine + 1]
-	newLines := make([][]Char, len(e.Lines) - 1)
+	nextLine := e.Lines[e.cursorLine+1]
+	newLines := make([][]Char, len(e.Lines)-1)
 
 	j := 0
 	for i := 0; i < e.cursorLine; i++ {
@@ -419,7 +419,7 @@ func (e *EditBox) Delete() bool {
 		j++
 	}
 
-	newLine := []Char {}
+	newLine := []Char{}
 	newLine = append(newLine, line...)
 	newLine = append(newLine, nextLine...)
 
@@ -438,10 +438,10 @@ func (e *EditBox) Delete() bool {
 }
 
 func removeFromLeft(src []Char, toRemove int) []Char {
-	ret := make([]Char, len(src) - toRemove)
+	ret := make([]Char, len(src)-toRemove)
 
 	for i := toRemove; i < len(ret); i++ {
-		ret[i - toRemove] = src[i]
+		ret[i-toRemove] = src[i]
 	}
 
 	return ret
@@ -482,7 +482,7 @@ func (e *EditBox) CursorNext() bool {
 	}
 
 	// No more lines, undo the move
-	if e.cursorLine == len(e.Lines) - 1 {
+	if e.cursorLine == len(e.Lines)-1 {
 		e.cursorChar--
 		return false
 	}
@@ -517,8 +517,8 @@ func (e *EditBox) cursorAtBeginning() bool {
 }
 
 func (e *EditBox) cursorAtEnd() bool {
-	return e.cursorLine >= len(e.Lines) - 1 &&
-	       e.cursorChar >= len(e.Lines[e.cursorLine]) - 1
+	return e.cursorLine >= len(e.Lines)-1 &&
+		e.cursorChar >= len(e.Lines[e.cursorLine])-1
 }
 
 func (e *EditBox) cursorCharClass() CharClass {
@@ -532,8 +532,8 @@ func (e *EditBox) nextWord() {
 	// Skip over characters until the character class changes
 	if startClass != ClassWhiteSpace {
 		for (e.cursorCharClass() == startClass ||
-		     e.CursorChar().Char == '\n') &&
-		    startLine == e.cursorLine {
+			e.CursorChar().Char == '\n') &&
+			startLine == e.cursorLine {
 			if !e.CursorNext() {
 				break
 			}
@@ -542,7 +542,7 @@ func (e *EditBox) nextWord() {
 
 	// Skip over any trailing whitespace
 	for e.cursorCharClass() == ClassWhiteSpace &&
-	    startLine == e.cursorLine {
+		startLine == e.cursorLine {
 		if !e.CursorNext() {
 			break
 		}
@@ -570,7 +570,7 @@ func (e *EditBox) previousWord() {
 
 	// Rewind over any whitespace
 	for e.cursorCharClass() == ClassWhiteSpace &&
-	    startLine == e.cursorLine {
+		startLine == e.cursorLine {
 		if !e.CursorPrevious() {
 			break
 		}
@@ -581,8 +581,8 @@ func (e *EditBox) previousWord() {
 	// Rewind until the character class changes
 	if startClass != ClassWhiteSpace {
 		for (e.cursorCharClass() == startClass ||
-		     e.CursorChar().Char == '\n') &&
-		    startLine == e.cursorLine {
+			e.CursorChar().Char == '\n') &&
+			startLine == e.cursorLine {
 			if !e.CursorPrevious() {
 				break
 			}
@@ -645,7 +645,7 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 	}
 
 	if !handled && (ev.Key == termbox.KeyBackspace ||
-			ev.Key == termbox.KeyBackspace2) {
+		ev.Key == termbox.KeyBackspace2) {
 		if e.CursorPrevious() {
 			e.Delete()
 		}
@@ -668,13 +668,13 @@ func (e *EditBox) HandleEvent(ev escapebox.Event) bool {
 
 	// Clamp the cursor to its constraints
 	e.cursorLine = max(0, e.cursorLine)
-	e.cursorLine = min(len(e.Lines) - 1, e.cursorLine)
+	e.cursorLine = min(len(e.Lines)-1, e.cursorLine)
 
 	e.cursorChar = max(0, e.cursorChar)
 
 	minChar := len(e.Lines[e.cursorLine])
 	if e.mode == CommandMode && minChar > 0 {
-	    minChar--
+		minChar--
 	}
 
 	e.cursorChar = min(minChar, e.cursorChar)
@@ -699,11 +699,11 @@ func (e *EditBox) validateLineRange(start, stop int) {
 	}
 
 	if start < 0 || stop < 0 ||
-	   start >= len(e.Lines) || stop >= len(e.Lines) {
+		start >= len(e.Lines) || stop >= len(e.Lines) {
 		panic("Line deletion out of range")
 	}
 
-	if stop - start + 1 > len(e.Lines) {
+	if stop-start+1 > len(e.Lines) {
 		panic("Can't delete more lines than currently exist")
 	}
 }
@@ -720,7 +720,7 @@ func (e *EditBox) deleteLines(start, stop int) {
 		return
 	}
 
-	newLines := make([][]Char, len(e.Lines) - toDelete)
+	newLines := make([][]Char, len(e.Lines)-toDelete)
 
 	dst := 0
 	for src := 0; src < len(e.Lines); src++ {
@@ -832,8 +832,8 @@ func (e *EditBox) handleChord_g() bool {
 func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 	// Start a chord
 	if len(e.chord) == 0 &&
-	   (ev.Ch == 'd' || ev.Ch == 'c' || ev.Ch == 'g') {
-		e.chord = []escapebox.Event { ev }
+		(ev.Ch == 'd' || ev.Ch == 'c' || ev.Ch == 'g') {
+		e.chord = []escapebox.Event{ev}
 		return true
 	}
 
@@ -841,7 +841,7 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 	if len(e.chord) > 0 {
 		// End chord
 		if ev.Key == termbox.KeyEsc {
-			e.chord = []escapebox.Event {}
+			e.chord = []escapebox.Event{}
 			return true
 		}
 
@@ -859,7 +859,7 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 
 		// Chord consumed
 		if consumed {
-			e.chord = []escapebox.Event {}
+			e.chord = []escapebox.Event{}
 		}
 
 		return true
@@ -899,15 +899,15 @@ func (e *EditBox) handleCommandModeEvent(ev escapebox.Event) bool {
 		return true
 	case 'o':
 		// Make room for another line
-		e.Lines = append(e.Lines, []Char {})
+		e.Lines = append(e.Lines, []Char{})
 
 		// Shift lines after cursorLine down
 		for i := len(e.Lines) - 2; i > e.cursorLine; i-- {
-			e.Lines[i + 1] = e.Lines[i]
+			e.Lines[i+1] = e.Lines[i]
 		}
 
 		// Add the new line
-		e.Lines[e.cursorLine + 1] = []Char {}
+		e.Lines[e.cursorLine+1] = []Char{}
 
 		e.cursorLine++
 		e.cursorChar = 0
@@ -953,7 +953,7 @@ func (e *EditBox) handleInsertModeEvent(ev escapebox.Event) bool {
 		return true
 	}
 
-	switch (ev.Key) {
+	switch ev.Key {
 	case termbox.KeyEnter:
 		insert := "\n"
 		for _, c := range e.Lines[e.cursorLine] {
@@ -1018,7 +1018,7 @@ func (e *EditBox) handleVisualLineModeEvent(ev escapebox.Event) bool {
 }
 
 func (e *EditBox) AllChars() []*Char {
-	ret := []*Char {}
+	ret := []*Char{}
 
 	for l := 0; l < len(e.Lines); l++ {
 		line := &e.Lines[l]
@@ -1027,7 +1027,7 @@ func (e *EditBox) AllChars() []*Char {
 			ret = append(ret, &(*line)[c])
 		}
 
-		ret = append(ret, &Char {
+		ret = append(ret, &Char{
 			Char: '\n',
 		})
 	}
@@ -1036,7 +1036,7 @@ func (e *EditBox) AllChars() []*Char {
 }
 
 func BasicHighlighter(e *EditBox) {
-	delimiters := []rune { ' ', '\n', '(', ')', ',', ';' }
+	delimiters := []rune{' ', '\n', '(', ')', ',', ';'}
 
 	var cur, next *Char
 	var quote rune
@@ -1072,14 +1072,14 @@ func BasicHighlighter(e *EditBox) {
 		//   - Preceded by another of the same quote char type
 		//   - Not the second character in a quote
 		nextDoubleEscaped := next != nil && next.Char == quote &&
-				     cur.Char == quote && quoteStartIndex < i
+			cur.Char == quote && quoteStartIndex < i
 
 		// Is the next character:
 		//   - Either slash- or double-escaped
 		//   - Not preceded by another escaped character
 		if next != nil {
 			next.Escaped = !cur.Escaped &&
-				       (nextSlashEscaped || nextDoubleEscaped)
+				(nextSlashEscaped || nextDoubleEscaped)
 		}
 
 		// Is the current character:
@@ -1087,8 +1087,8 @@ func BasicHighlighter(e *EditBox) {
 		//   - Not escaped
 		//   - Not the first in a double-escaped sequence ('' or "")
 		isCurQuote := !cur.Escaped && !nextDoubleEscaped &&
-			      (cur.Char == QuoteSingle ||
-			       cur.Char == QuoteDouble)
+			(cur.Char == QuoteSingle ||
+				cur.Char == QuoteDouble)
 
 		quoteToggledThisLoop := false
 
@@ -1114,7 +1114,7 @@ func BasicHighlighter(e *EditBox) {
 
 			wordColor := termbox.ColorWhite
 
-			switch (tokenType) {
+			switch tokenType {
 			case TokenKeyword:
 				wordColor = colorKeyword
 			case TokenType:
@@ -1122,7 +1122,7 @@ func BasicHighlighter(e *EditBox) {
 			}
 
 			if wordColor != termbox.ColorWhite {
-				for j := i - 1; j >= i - len(word) - 1; j-- {
+				for j := i - 1; j >= i-len(word)-1; j-- {
 					chars[j].Fg = wordColor
 				}
 			}
@@ -1141,7 +1141,7 @@ func BasicHighlighter(e *EditBox) {
 
 		// End quote
 		if isCurQuote && quote != QuoteNone && !quoteToggledThisLoop &&
-		   quote == cur.Char {
+			quote == cur.Char {
 			quote = QuoteNone
 		}
 	}

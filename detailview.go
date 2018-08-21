@@ -1,8 +1,8 @@
 package tui
 
 import (
-	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
+	"github.com/nsf/termbox-go"
 )
 
 type Column struct {
@@ -18,8 +18,8 @@ type DetailView struct {
 	cursorCol  int
 	cursorRow  int
 	Columns    []Column
-	Rows	   [][]string
-	RowBg	   termbox.Attribute
+	Rows       [][]string
+	RowBg      termbox.Attribute
 	RowBgAlt   termbox.Attribute
 	SelectedBg termbox.Attribute
 }
@@ -33,8 +33,8 @@ func (d *DetailView) Reset() {
 	d.scrollRow = 0
 	d.cursorCol = 0
 	d.cursorRow = 0
-	d.Columns = []Column {}
-	d.Rows = [][]string {}
+	d.Columns = []Column{}
+	d.Rows = [][]string{}
 }
 
 func (d *DetailView) SetCursor(row, col int) {
@@ -66,7 +66,7 @@ func (d *DetailView) viewWidth() int {
 }
 
 func (d *DetailView) lastVisibleRow() int {
-	return min(len(d.Rows), d.scrollRow + d.viewHeight())
+	return min(len(d.Rows), d.scrollRow+d.viewHeight())
 }
 
 func (d *DetailView) firstVisibleCol() (int, int) {
@@ -150,7 +150,7 @@ func (d *DetailView) Draw(target *DrawTarget) {
 		name := col.Name
 
 		if ci == firstCol {
-			if len(name) - firstOffset >= 0 {
+			if len(name)-firstOffset >= 0 {
 				name = name[firstOffset:len(name)]
 			} else {
 				name = ""
@@ -160,13 +160,13 @@ func (d *DetailView) Draw(target *DrawTarget) {
 		maxLen := col.Width
 
 		if ci == lastCol {
-			maxLen = min(maxLen, col.Width - lastOffset)
+			maxLen = min(maxLen, col.Width-lastOffset)
 		}
 
 		maxLen = min(maxLen, d.viewWidth())
 
-		target.Print(left, top, termbox.ColorWhite | termbox.AttrBold,
-				termbox.ColorBlack, renderValue(name, maxLen))
+		target.Print(left, top, termbox.ColorWhite|termbox.AttrBold,
+			termbox.ColorBlack, renderValue(name, maxLen))
 
 		left += col.Width
 
@@ -180,7 +180,7 @@ func (d *DetailView) Draw(target *DrawTarget) {
 		top++
 
 		rowColor := d.RowBg
-		if r % 2 == 0 {
+		if r%2 == 0 {
 			rowColor = d.RowBgAlt
 		}
 
@@ -196,7 +196,7 @@ func (d *DetailView) Draw(target *DrawTarget) {
 			val := d.Rows[r][ci]
 
 			if ci == firstCol {
-				if len(val) - firstOffset <= 0 {
+				if len(val)-firstOffset <= 0 {
 					val = ""
 				} else {
 					val = val[firstOffset:len(val)]
@@ -206,7 +206,7 @@ func (d *DetailView) Draw(target *DrawTarget) {
 			maxLen := col.Width
 
 			if ci == lastCol {
-				maxLen = min(maxLen, col.Width - lastOffset)
+				maxLen = min(maxLen, col.Width-lastOffset)
 			}
 
 			maxLen = min(maxLen, d.viewWidth())
@@ -224,7 +224,7 @@ func (d *DetailView) Draw(target *DrawTarget) {
 			}
 
 			target.Print(left, top, termbox.ColorWhite, colColor,
-					val)
+				val)
 
 			left += col.Width
 
@@ -301,7 +301,7 @@ func (d *DetailView) HandleEvent(ev escapebox.Event) bool {
 	}
 
 	if oldCursorRow != d.cursorRow || oldCursorCol != d.cursorCol ||
-	   oldScrollRow != d.scrollRow || oldScrollCol != d.scrollCol {
+		oldScrollRow != d.scrollRow || oldScrollCol != d.scrollCol {
 		d.updateScroll()
 	}
 
@@ -311,18 +311,18 @@ func (d *DetailView) HandleEvent(ev escapebox.Event) bool {
 func (d *DetailView) updateScroll() {
 	// Clamp cursor
 	d.cursorRow = max(0, d.cursorRow)
-	d.cursorRow = min(len(d.Rows) - 1, d.cursorRow)
+	d.cursorRow = min(len(d.Rows)-1, d.cursorRow)
 
 	d.cursorCol = max(0, d.cursorCol)
-	d.cursorCol = min(len(d.Columns) - 1, d.cursorCol)
+	d.cursorCol = min(len(d.Columns)-1, d.cursorCol)
 
 	// Clamp scroll
 	d.scrollCol = max(d.scrollCol, 0)
 	d.scrollRow = max(d.scrollRow, 0)
 
-	maxScrollCol := max(0, d.totalWidth() - d.viewWidth())
+	maxScrollCol := max(0, d.totalWidth()-d.viewWidth())
 	d.scrollCol = min(d.scrollCol, maxScrollCol)
-	d.scrollRow = min(d.scrollRow, len(d.Rows) - 1)
+	d.scrollRow = min(d.scrollRow, len(d.Rows)-1)
 
 	if d.cursorRow < d.scrollRow {
 		d.scrollRow = d.cursorRow
@@ -341,9 +341,9 @@ func (d *DetailView) updateScroll() {
 	}
 
 	if d.columnRight(d.cursorCol) > d.scrollColEnd() &&
-	   d.columnLeft(d.cursorCol) > d.scrollCol {
+		d.columnLeft(d.cursorCol) > d.scrollCol {
 		d.scrollCol = min(
 			d.columnLeft(d.cursorCol),
-			d.columnRight(d.cursorCol) - d.scrollColEnd())
+			d.columnRight(d.cursorCol)-d.scrollColEnd())
 	}
 }

@@ -1,17 +1,17 @@
 package tui
 
 import (
-	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
+	"github.com/nsf/termbox-go"
 )
 
 type ButtonClickEvent func(*Button)
 
 type Button struct {
-	Bounds		Rect
-	Text		string
-	focus		bool
-	ClickHandler	ButtonClickEvent
+	Bounds       Rect
+	Text         string
+	focus        bool
+	ClickHandler ButtonClickEvent
 }
 
 func (b *Button) GetBounds() *Rect {
@@ -22,7 +22,7 @@ func (b *Button) Draw(target *DrawTarget) {
 	target.Print(2, 1, termbox.ColorWhite, termbox.ColorBlack, b.Text)
 
 	if b.focus {
-		termbox.SetCursor(b.Bounds.Left + 1, b.Bounds.Top + 1)
+		termbox.SetCursor(b.Bounds.Left+1, b.Bounds.Top+1)
 	}
 }
 

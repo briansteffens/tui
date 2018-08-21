@@ -8,15 +8,15 @@ type ResizeEvent func()
 type EventHandler func(c *Container, ev escapebox.Event) bool
 
 type Container struct {
-	Controls		[]Control
-	Focused			Focusable
-	ResizeHandler		ResizeEvent
-	Width			int
-	Height			int
-	KeyBindingFocusNext	KeyBinding
-	KeyBindingFocusPrevious	KeyBinding
-	KeyBindingExit		KeyBinding
-	HandleEvent		EventHandler
+	Controls                []Control
+	Focused                 Focusable
+	ResizeHandler           ResizeEvent
+	Width                   int
+	Height                  int
+	KeyBindingFocusNext     KeyBinding
+	KeyBindingFocusPrevious KeyBinding
+	KeyBindingExit          KeyBinding
+	HandleEvent             EventHandler
 }
 
 func (c *Container) focus(f Focusable) {

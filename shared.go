@@ -1,10 +1,10 @@
 package tui
 
 import (
-	"os"
 	"fmt"
-	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
+	"github.com/nsf/termbox-go"
+	"os"
 )
 
 func min(a, b int) int {
@@ -121,7 +121,8 @@ func MainLoop(c *Container) {
 
 	Refresh(c)
 
-	loop: for {
+loop:
+	for {
 		ev := escapebox.PollEvent()
 
 		if matchBinding(ev, c.KeyBindingExit) {

@@ -19,5 +19,5 @@ func (r *Rect) ContainsRect(other *Rect) bool {
 
 func (r *Rect) ContainsPoint(x, y int) bool {
 	return x >= 0 && x < r.Width &&
-	       y >= 0 && y < r.Height
+		y >= 0 && y < r.Height
 }

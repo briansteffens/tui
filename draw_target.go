@@ -1,11 +1,11 @@
 package tui
 
 import (
-	"fmt"
 	"errors"
-	"unicode/utf8"
-	"golang.org/x/text/unicode/norm"
+	"fmt"
 	"github.com/nsf/termbox-go"
+	"golang.org/x/text/unicode/norm"
+	"unicode/utf8"
 )
 
 // A DrawTarget represents a drawable portion of the terminal window. Drawing
@@ -13,19 +13,19 @@ import (
 // coordinates to screen coordinates and clip drawing to the drawable region.
 // It can be further subdivided by calling ChildDrawTarget().
 type DrawTarget struct {
-	Width		int
-	Height		int
+	Width  int
+	Height int
 
-	offsetLeft	int
-	offsetTop	int
+	offsetLeft int
+	offsetTop  int
 }
 
 // The location and size of the drawable area in local coordinates.
 func (target *DrawTarget) Bounds() *Rect {
-	return &Rect {
-		Left: 0,
-		Top: 0,
-		Width: target.Width,
+	return &Rect{
+		Left:   0,
+		Top:    0,
+		Width:  target.Width,
 		Height: target.Height,
 	}
 }
@@ -33,7 +33,7 @@ func (target *DrawTarget) Bounds() *Rect {
 // Set one terminal cell. If (x, y) is out of bounds, an error will be returned
 // and the terminal will be unchanged.
 func (target *DrawTarget) SetCell(x, y int,
-		foreground, background termbox.Attribute, char rune) error {
+	foreground, background termbox.Attribute, char rune) error {
 	if !target.Bounds().ContainsPoint(x, y) {
 		return errors.New(
 			"Coordinates are out of bounds for the DrawTarget")
@@ -50,12 +50,12 @@ func (target *DrawTarget) SetCell(x, y int,
 // style. The text will be automatically clipped to the DrawTarget's drawable
 // region.
 func (target *DrawTarget) Print(x, y int,
-		foreground, background termbox.Attribute, text string,
-		args ...interface{}) {
+	foreground, background termbox.Attribute, text string,
+	args ...interface{}) {
 	formatted := fmt.Sprintf(text, args...)
 	normalized := normalizeString(formatted)
 	for i, r := range normalized {
-		target.SetCell(x + i, y, foreground, background, r)
+		target.SetCell(x+i, y, foreground, background, r)
 	}
 }
 
@@ -68,14 +68,14 @@ func (target *DrawTarget) Print(x, y int,
 func (parent *DrawTarget) Slice(childBounds *Rect) (*DrawTarget, error) {
 	if !parent.Bounds().ContainsRect(childBounds) {
 		return nil, errors.New("Provided child bounds would exceed " +
-				"the parent's dimensions.")
+			"the parent's dimensions.")
 	}
 
-	return &DrawTarget {
+	return &DrawTarget{
 		offsetLeft: parent.offsetLeft + childBounds.Left,
-		offsetTop: parent.offsetTop + childBounds.Top,
-		Width: childBounds.Width,
-		Height: childBounds.Height,
+		offsetTop:  parent.offsetTop + childBounds.Top,
+		Width:      childBounds.Width,
+		Height:     childBounds.Height,
 	}, nil
 }
 
@@ -120,10 +120,10 @@ func normalizeString(input string) []rune {
 func fullTerminalDrawTarget() *DrawTarget {
 	terminalWidth, terminalHeight := termbox.Size()
 
-	return &DrawTarget {
-		Width: terminalWidth,
-		Height: terminalHeight,
+	return &DrawTarget{
+		Width:      terminalWidth,
+		Height:     terminalHeight,
 		offsetLeft: 0,
-		offsetTop: 0,
+		offsetTop:  0,
 	}
 }

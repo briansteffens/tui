@@ -1,15 +1,15 @@
 package tui
 
 import (
-	"github.com/nsf/termbox-go"
 	"github.com/briansteffens/escapebox"
+	"github.com/nsf/termbox-go"
 )
 
 type CheckBox struct {
-	Bounds		Rect
-	Text		string
-	Checked		bool
-	focus		bool
+	Bounds  Rect
+	Text    string
+	Checked bool
+	focus   bool
 }
 
 func (c *CheckBox) GetBounds() *Rect {
@@ -27,7 +27,7 @@ func (c *CheckBox) Draw(target *DrawTarget) {
 		"[%s] %s", checkContent, c.Text)
 
 	if c.focus {
-		termbox.SetCursor(c.Bounds.Left + 1, c.Bounds.Top)
+		termbox.SetCursor(c.Bounds.Left+1, c.Bounds.Top)
 	}
 }
 

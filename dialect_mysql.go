@@ -17,7 +17,7 @@ func DialectMySQL(word string) Token {
 }
 
 func initMysqlKeywords() {
-	mysqlKeywords = map[string]Token {
+	mysqlKeywords = map[string]Token{
 		"account":                       TokenKeyword,
 		"action":                        TokenKeyword,
 		"add":                           TokenKeyword,
