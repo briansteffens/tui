@@ -58,7 +58,7 @@ func matchBinding(ev escapebox.Event, kb KeyBinding) bool {
 }
 
 type Control interface {
-	GetBounds() *Rect
+	GetBounds() Rect
 	Draw(DrawTarget)
 }
 

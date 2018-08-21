@@ -24,8 +24,8 @@ type DetailView struct {
 	SelectedBg termbox.Attribute
 }
 
-func (d *DetailView) GetBounds() *Rect {
-	return &d.Bounds
+func (d *DetailView) GetBounds() Rect {
+	return d.Bounds
 }
 
 func (d *DetailView) Reset() {

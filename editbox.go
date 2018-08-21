@@ -80,8 +80,8 @@ type EditBox struct {
 	clipBoard       [][]Char
 }
 
-func (e *EditBox) GetBounds() *Rect {
-	return &e.Bounds
+func (e *EditBox) GetBounds() Rect {
+	return e.Bounds
 }
 
 var whitespace []rune = []rune{' ', '\t'}

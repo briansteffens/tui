@@ -9,8 +9,8 @@ type Label struct {
 	Text   string
 }
 
-func (l *Label) GetBounds() *Rect {
-	return &l.Bounds
+func (l *Label) GetBounds() Rect {
+	return l.Bounds
 }
 
 func (l *Label) Draw(target DrawTarget) {

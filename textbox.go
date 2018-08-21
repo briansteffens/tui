@@ -14,8 +14,8 @@ type TextBox struct {
 	focus  bool
 }
 
-func (t *TextBox) GetBounds() *Rect {
-	return &t.Bounds
+func (t *TextBox) GetBounds() Rect {
+	return t.Bounds
 }
 
 func (t *TextBox) maxVisibleChars() int {
