@@ -16,7 +16,7 @@ func (c *CheckBox) GetBounds() *Rect {
 	return &c.Bounds
 }
 
-func (c *CheckBox) Draw(target *DrawTarget) {
+func (c *CheckBox) Draw(target IDrawTarget) {
 	checkContent := " "
 
 	if c.Checked {

@@ -8,6 +8,14 @@ import (
 	"unicode/utf8"
 )
 
+type IDrawTarget interface {
+	Bounds() *Rect
+	SetCell(x, y int, foreground, background termbox.Attribute, char rune)
+		error
+	Print(x, y int, foreground, background termbox.Attribute, text string,
+		args ...interface{})
+}
+
 // A DrawTarget represents a drawable portion of the terminal window. Drawing
 // with methods like SetCell and Print will automatically translate from local
 // coordinates to screen coordinates and clip drawing to the drawable region.
@@ -21,7 +29,7 @@ type DrawTarget struct {
 }
 
 // The location and size of the drawable area in local coordinates.
-func (target *DrawTarget) Bounds() *Rect {
+func (target DrawTarget) Bounds() *Rect {
 	return &Rect{
 		Left:   0,
 		Top:    0,
@@ -32,7 +40,7 @@ func (target *DrawTarget) Bounds() *Rect {
 
 // Set one terminal cell. If (x, y) is out of bounds, an error will be returned
 // and the terminal will be unchanged.
-func (target *DrawTarget) SetCell(x, y int,
+func (target DrawTarget) SetCell(x, y int,
 	foreground, background termbox.Attribute, char rune) error {
 	if !target.Bounds().ContainsPoint(x, y) {
 		return errors.New(
@@ -49,7 +57,7 @@ func (target *DrawTarget) SetCell(x, y int,
 // Write formatted text to the terminal using the "fmt" package formatting
 // style. The text will be automatically clipped to the DrawTarget's drawable
 // region.
-func (target *DrawTarget) Print(x, y int,
+func (target DrawTarget) Print(x, y int,
 	foreground, background termbox.Attribute, text string,
 	args ...interface{}) {
 	formatted := fmt.Sprintf(text, args...)
@@ -65,21 +73,24 @@ func (target *DrawTarget) Print(x, y int,
 //
 // Note: this is mostly needed if you're writing a control that contains other
 // controls.
-func (parent *DrawTarget) Slice(childBounds *Rect) (*DrawTarget, error) {
+func Scope(parent *DrawTarget, childBounds *Rect) IDrawTarget {
 	if !parent.Bounds().ContainsRect(childBounds) {
-		return nil, errors.New("Provided child bounds would exceed " +
-			"the parent's dimensions.")
+		//return nil, errors.New("Provided child bounds would exceed " +
+			//"the parent's dimensions.")
+		panic("asdf")
 	}
 
-	return &DrawTarget{
+	target := DrawTarget{
 		offsetLeft: parent.offsetLeft + childBounds.Left,
 		offsetTop:  parent.offsetTop + childBounds.Top,
 		Width:      childBounds.Width,
 		Height:     childBounds.Height,
-	}, nil
+	}
+
+	return target
 }
 
-func (target *DrawTarget) localToScreenCoords(x, y int) (int, int) {
+func (target DrawTarget) localToScreenCoords(x, y int) (int, int) {
 	return target.offsetLeft + x, target.offsetTop + y
 }
 

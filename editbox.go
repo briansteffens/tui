@@ -209,7 +209,7 @@ func (e *EditBox) SetText(raw string) {
 	e.fireTextChanged()
 }
 
-func (e *EditBox) Draw(target *DrawTarget) {
+func (e *EditBox) Draw(target IDrawTarget) {
 	textWidth := e.Bounds.Width
 	textHeight := e.Bounds.Height - 1 // Bottom line free for modes/notices
 

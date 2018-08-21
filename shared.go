@@ -59,7 +59,7 @@ func matchBinding(ev escapebox.Event, kb KeyBinding) bool {
 
 type Control interface {
 	GetBounds() *Rect
-	Draw(*DrawTarget)
+	Draw(IDrawTarget)
 }
 
 type Focusable interface {

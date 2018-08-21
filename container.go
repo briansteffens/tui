@@ -95,7 +95,7 @@ func (c *Container) FocusPrevious() {
 func (c *Container) Draw(target *DrawTarget) {
 	for _, child := range c.Controls {
 		childBounds := child.GetBounds()
-		childContext, err := target.Slice(childBounds)
+		childContext, err := Scope(target, childBounds)
 
 		if err != nil {
 			panic(err)
