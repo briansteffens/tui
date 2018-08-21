@@ -80,8 +80,8 @@ type EditBox struct {
 	clipBoard       [][]Char
 }
 
-func (e *EditBox) GetBounds() *Rect {
-	return &e.Bounds
+func (e *EditBox) GetBounds() Rect {
+	return e.Bounds
 }
 
 var whitespace []rune = []rune{' ', '\t'}
@@ -209,7 +209,7 @@ func (e *EditBox) SetText(raw string) {
 	e.fireTextChanged()
 }
 
-func (e *EditBox) Draw(target *DrawTarget) {
+func (e *EditBox) Draw(target DrawTarget) {
 	textWidth := e.Bounds.Width
 	textHeight := e.Bounds.Height - 1 // Bottom line free for modes/notices
 

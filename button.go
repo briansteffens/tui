@@ -14,11 +14,11 @@ type Button struct {
 	ClickHandler ButtonClickEvent
 }
 
-func (b *Button) GetBounds() *Rect {
-	return &b.Bounds
+func (b *Button) GetBounds() Rect {
+	return b.Bounds
 }
 
-func (b *Button) Draw(target *DrawTarget) {
+func (b *Button) Draw(target DrawTarget) {
 	target.Print(2, 1, termbox.ColorWhite, termbox.ColorBlack, b.Text)
 
 	if b.focus {

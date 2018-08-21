@@ -12,11 +12,11 @@ type CheckBox struct {
 	focus   bool
 }
 
-func (c *CheckBox) GetBounds() *Rect {
-	return &c.Bounds
+func (c *CheckBox) GetBounds() Rect {
+	return c.Bounds
 }
 
-func (c *CheckBox) Draw(target *DrawTarget) {
+func (c *CheckBox) Draw(target DrawTarget) {
 	checkContent := " "
 
 	if c.Checked {

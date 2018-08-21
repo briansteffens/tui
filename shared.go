@@ -58,8 +58,8 @@ func matchBinding(ev escapebox.Event, kb KeyBinding) bool {
 }
 
 type Control interface {
-	GetBounds() *Rect
-	Draw(*DrawTarget)
+	GetBounds() Rect
+	Draw(DrawTarget)
 }
 
 type Focusable interface {
@@ -106,7 +106,7 @@ func log(message string, args ...interface{}) {
 }
 
 func Refresh(root *Container) {
-	target := fullTerminalDrawTarget()
+	target := newTermboxDrawTarget()
 	root.Draw(target)
 	termbox.Flush()
 }

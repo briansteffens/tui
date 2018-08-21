@@ -24,8 +24,8 @@ type DetailView struct {
 	SelectedBg termbox.Attribute
 }
 
-func (d *DetailView) GetBounds() *Rect {
-	return &d.Bounds
+func (d *DetailView) GetBounds() Rect {
+	return d.Bounds
 }
 
 func (d *DetailView) Reset() {
@@ -137,7 +137,7 @@ func (d *DetailView) totalWidth() int {
 	return ret
 }
 
-func (d *DetailView) Draw(target *DrawTarget) {
+func (d *DetailView) Draw(target DrawTarget) {
 	top := 0
 	left := 0
 

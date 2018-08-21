@@ -14,8 +14,8 @@ type TextBox struct {
 	focus  bool
 }
 
-func (t *TextBox) GetBounds() *Rect {
-	return &t.Bounds
+func (t *TextBox) GetBounds() Rect {
+	return t.Bounds
 }
 
 func (t *TextBox) maxVisibleChars() int {
@@ -30,7 +30,7 @@ func (t *TextBox) lastVisible() int {
 	return t.scroll + t.visibleChars() - 1
 }
 
-func (t *TextBox) Draw(target *DrawTarget) {
+func (t *TextBox) Draw(target DrawTarget) {
 	target.Print(1, 1, termbox.ColorWhite, termbox.ColorBlack,
 		t.Value[t.scroll:t.lastVisible()+1])
 
